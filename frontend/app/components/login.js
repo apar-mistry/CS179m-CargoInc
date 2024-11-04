@@ -2,15 +2,18 @@
 import React, { useState } from 'react';
 import { TextField, Button, Container, Typography, Box } from '@mui/material';
 import axios from 'axios';
+import { useRouter } from 'next/navigation';
 
 const LoginComponent = () => {
   const [name, setName] = useState('');
+  const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       await axios.post('http://127.0.0.1:5000/api/log_login', { username: name });
-      console.log("Log entry created successfully");
+      sessionStorage.setItem('username', name);
+      router.push('/main'); // Redirect to the main page after login
     } catch (error) {
       console.error('Error logging in:', error);
     }
