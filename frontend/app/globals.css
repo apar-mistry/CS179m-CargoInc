@@ -1,7 +1,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --dock-blue: #2C3E50;
+  --dock-blue: #669bbc;
   --cargo-green: #4B5320;
   --steel-gray: #596275;
   --safety-orange: #D35400;
@@ -10,12 +10,7 @@
   --text-dark-gray: #2B2B2B;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+
 
 html,
 body {
@@ -42,8 +37,3 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-}
