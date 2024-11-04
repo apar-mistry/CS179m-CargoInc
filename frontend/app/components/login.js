@@ -30,7 +30,7 @@ const LoginComponent = () => {
         boxShadow={3}
       >
         <Typography variant="h5" component="h1" gutterBottom>
-          Login
+          Welcome Operator!
         </Typography>
         <form onSubmit={handleSubmit} style={{ width: '100%' }}>
           <TextField
@@ -48,7 +48,7 @@ const LoginComponent = () => {
             fullWidth
             style={{ marginTop: '16px' }}
           >
-            Submit
+            Log In
           </Button>
         </form>
       </Box>
