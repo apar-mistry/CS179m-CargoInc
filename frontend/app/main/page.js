@@ -5,17 +5,17 @@ import {
   Container,
   Typography,
   Box,
-  Grid2,
+  Grid,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  AppBar,
+  Toolbar,
+  IconButton
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import AppBar from "@mui/material/AppBar";
-import Toolbar from "@mui/material/Toolbar";
-import IconButton from "@mui/material/IconButton";
 
 const MainPage = () => {
   const [username, setUsername] = useState("");
@@ -36,11 +36,9 @@ const MainPage = () => {
   const handleLogout = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://127.0.0.1:5000/api/log_logout", {
-        username: username,
-      });
+      await axios.post("http://127.0.0.1:5000/api/log_logout", { username });
       sessionStorage.setItem("username", "");
-      router.push("/"); // Redirect to the main page after login
+      router.push("/"); // Redirect to the login page after logout
     } catch (error) {
       console.error("Error logging out:", error);
     }
@@ -65,12 +63,26 @@ const MainPage = () => {
     }
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (file) {
-      // Here you can add the logic to upload the file
-      console.log(`Uploading ${file.name} for ${operation} operation.`);
-      // Close the dialog after the upload action
-      handleCloseDialog();
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Send the file to the backend
+        const response = await axios.post('http://127.0.0.1:5000/api/upload', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        console.log('File uploaded successfully:', response.data);
+        alert('File uploaded successfully');
+        handleCloseDialog(); // Close dialog after successful upload
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        alert('Error uploading file');
+      }
     } else {
       alert("Please select a .txt file.");
     }
@@ -103,25 +115,23 @@ const MainPage = () => {
       </AppBar>
 
       <Container maxWidth="md" style={{ marginTop: "50px" }}>
-        <Grid2 container direction="column" alignItems="center" spacing={3}>
-          <Grid2 item>
+        <Grid container direction="column" alignItems="center" spacing={3}>
+          <Grid item>
             <Typography variant="h4" component="h1" align="center">
               Which operation would you like to complete?
             </Typography>
-          </Grid2>
+          </Grid>
 
-          {/* Logo */}
-          <Grid2 item>
+          <Grid item>
             <img
               src="/logo.png" // Replace with your logo path
               alt="Logo"
               style={{ width: "200px", height: "auto" }}
             />
-          </Grid2>
+          </Grid>
 
-          {/* Buttons */}
-          <Grid2 item container justifyContent="center" spacing={2}>
-            <Grid2 item>
+          <Grid item container justifyContent="center" spacing={2}>
+            <Grid item>
               <Button
                 variant="contained"
                 size="large"
@@ -130,8 +140,8 @@ const MainPage = () => {
               >
                 Balance
               </Button>
-            </Grid2>
-            <Grid2 item>
+            </Grid>
+            <Grid item>
               <Button
                 variant="contained"
                 size="large"
@@ -140,9 +150,9 @@ const MainPage = () => {
               >
                 Load/Unload
               </Button>
-            </Grid2>
-          </Grid2>
-        </Grid2>
+            </Grid>
+          </Grid>
+        </Grid>
       </Container>
 
       <Dialog open={open} onClose={handleCloseDialog}>
