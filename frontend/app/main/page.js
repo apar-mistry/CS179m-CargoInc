@@ -67,21 +67,24 @@ const MainPage = () => {
     if (file) {
       try {
         const formData = new FormData();
-        formData.append('file', file);
-
+        formData.append("file", file);
+  
         // Send the file to the backend
-        const response = await axios.post('http://127.0.0.1:5000/api/upload', formData, {
+        const response = await axios.post("http://127.0.0.1:5000/api/upload", formData, {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            "Content-Type": "multipart/form-data",
           },
         });
-
-        console.log('File uploaded successfully:', response.data);
-        alert('File uploaded successfully');
+  
+        console.log("File uploaded successfully:", response.data);
+        alert("File uploaded successfully");
+  
+        // Navigate to the grid display page after successful upload
+        router.push("/grid-display");
         handleCloseDialog(); // Close dialog after successful upload
       } catch (error) {
-        console.error('Error uploading file:', error);
-        alert('Error uploading file');
+        console.error("Error uploading file:", error);
+        alert("Error uploading file");
       }
     } else {
       alert("Please select a .txt file.");
