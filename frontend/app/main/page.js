@@ -10,18 +10,19 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  AppBar,
-  Toolbar,
-  IconButton
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import MenuBar from "../components/MenuBar";
+import { set } from "express/lib/application";
 
 const MainPage = () => {
   const [username, setUsername] = useState("");
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState(null);
   const [operation, setOperation] = useState("");
+  const [routeName, setRoute] = useState("");
+
   const router = useRouter();
 
   useEffect(() => {
@@ -33,19 +34,11 @@ const MainPage = () => {
     }
   }, [router]);
 
-  const handleLogout = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post("http://127.0.0.1:5000/api/log_logout", { username });
-      sessionStorage.setItem("username", "");
-      router.push("/"); // Redirect to the login page after logout
-    } catch (error) {
-      console.error("Error logging out:", error);
-    }
-  };
 
-  const handleOpenDialog = (operationType) => {
+  const handleOpenDialog = (operationType, route) => {
     setOperation(operationType);
+    sessionStorage.setItem("operation", operationType);
+    sessionStorage.setItem("route", route);
     setOpen(true);
   };
 
@@ -80,7 +73,7 @@ const MainPage = () => {
         alert("File uploaded successfully");
   
         // Navigate to the grid display page after successful upload
-        router.push("/grid-display");
+        router.push(sessionStorage.getItem("route"));
         handleCloseDialog(); // Close dialog after successful upload
       } catch (error) {
         console.error("Error uploading file:", error);
@@ -93,29 +86,7 @@ const MainPage = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static" sx={{ backgroundColor: "var(--steel-gray)" }}>
-        <Toolbar>
-          <IconButton
-            size="large"
-            edge="start"
-            color="inherit"
-            aria-label="logo"
-            sx={{ mr: 2 }}
-          >
-            <img
-              src="/crane.png" // Replace with your image path or URL
-              alt="Logo"
-              style={{ width: "40px", height: "40px" }}
-            />
-          </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Welcome, {username}!
-          </Typography>
-          <Button color="inherit" onClick={handleLogout}>
-            Logout
-          </Button>
-        </Toolbar>
-      </AppBar>
+      <MenuBar/>
 
       <Container maxWidth="md" style={{ marginTop: "50px" }}>
         <Grid container direction="column" alignItems="center" spacing={3}>
@@ -138,7 +109,7 @@ const MainPage = () => {
               <Button
                 variant="contained"
                 size="large"
-                onClick={() => handleOpenDialog("Balancing")}
+                onClick={() => handleOpenDialog("Balancing", "/balance")}
                 sx={{ backgroundColor: "var(--dock-blue)" }}
               >
                 Balance
@@ -148,7 +119,7 @@ const MainPage = () => {
               <Button
                 variant="contained"
                 size="large"
-                onClick={() => handleOpenDialog("Load/Unload")}
+                onClick={() => handleOpenDialog("Load/Unload", "load_unload")}
                 sx={{ backgroundColor: "var(--safety-orange)" }}
               >
                 Load/Unload
