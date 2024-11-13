@@ -33,7 +33,7 @@ def operator_logs(username, log):
     log_file_path = os.path.join(log_dir, "operator_logs.txt")
     time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     # Create log entry with the date and time
-    log_entry = f"{time}: {username}    {log} \n"
+    log_entry = f"{time}   {username}    {log} \n"
 
     # Append the log entry to the log file
     with open(log_file_path, "a") as log_file:
