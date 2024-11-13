@@ -3,7 +3,7 @@ from flask_cors import CORS
 import os
 from datetime import datetime
 import shutil
-from utils.logger import log_action
+from utils.logger import *
 from utils.parser import parseData
 app = Flask(__name__)
 CORS(app)  # Allow CORS for requests from frontend
@@ -76,6 +76,13 @@ def get_grid_data():
         return jsonify({"error": "No grid data available"}), 404
     return jsonify({"data": grid_data}), 200
 
+@app.route('/api/log_operator', methods=['POST'])
+def log_operator():
+    data = request.get_json()
+    username = data.get('username')
+    log = data.get('log')
+    operator_logs(username, log)
+    return jsonify({"message": "Log created successfully"}), 200
 
 if __name__ == '__main__':
     app.run(port=5000)  # Flask backend will run on port 5000

@@ -15,7 +15,7 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import MenuBar from "../components/MenuBar";
 import { set } from "express/lib/application";
-
+import CommentButton from "../components/comment";
 const MainPage = () => {
   const [username, setUsername] = useState("");
   const [open, setOpen] = useState(false);
@@ -33,7 +33,6 @@ const MainPage = () => {
       router.push("/"); // Redirect to login if no username is found
     }
   }, [router]);
-
 
   const handleOpenDialog = (operationType, route) => {
     setOperation(operationType);
@@ -61,18 +60,22 @@ const MainPage = () => {
       try {
         const formData = new FormData();
         formData.append("file", file);
-  
+
         // Send the file to the backend
-        const response = await axios.post("http://127.0.0.1:5000/api/upload", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            "Username": username,
-          },
-        });
-  
+        const response = await axios.post(
+          "http://127.0.0.1:5000/api/upload",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+              Username: username,
+            },
+          }
+        );
+
         console.log("File uploaded successfully:", response.data);
         alert("File uploaded successfully");
-  
+
         // Navigate to the grid display page after successful upload
         router.push(sessionStorage.getItem("route"));
         handleCloseDialog(); // Close dialog after successful upload
@@ -87,7 +90,7 @@ const MainPage = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <MenuBar/>
+      <MenuBar />
 
       <Container maxWidth="md" style={{ marginTop: "50px" }}>
         <Grid container direction="column" alignItems="center" spacing={3}>
@@ -129,7 +132,7 @@ const MainPage = () => {
           </Grid>
         </Grid>
       </Container>
-
+      <CommentButton />
       <Dialog open={open} onClose={handleCloseDialog}>
         <DialogTitle>Upload File for {operation}</DialogTitle>
         <DialogContent>
