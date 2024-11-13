@@ -5,7 +5,7 @@ import {
   Container,
   Typography,
   Box,
-  Grid2,
+  Grid,
   Dialog,
   DialogActions,
   DialogContent,
@@ -13,15 +13,16 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import AppBar from "@mui/material/AppBar";
-import Toolbar from "@mui/material/Toolbar";
-import IconButton from "@mui/material/IconButton";
+import MenuBar from "../components/MenuBar";
+import { set } from "express/lib/application";
 
 const MainPage = () => {
   const [username, setUsername] = useState("");
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState(null);
   const [operation, setOperation] = useState("");
+  const [routeName, setRoute] = useState("");
+
   const router = useRouter();
 
   useEffect(() => {
@@ -33,21 +34,11 @@ const MainPage = () => {
     }
   }, [router]);
 
-  const handleLogout = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post("http://127.0.0.1:5000/api/log_logout", {
-        username: username,
-      });
-      sessionStorage.setItem("username", "");
-      router.push("/"); // Redirect to the main page after login
-    } catch (error) {
-      console.error("Error logging out:", error);
-    }
-  };
 
-  const handleOpenDialog = (operationType) => {
+  const handleOpenDialog = (operationType, route) => {
     setOperation(operationType);
+    sessionStorage.setItem("operation", operationType);
+    sessionStorage.setItem("route", route);
     setOpen(true);
   };
 
@@ -65,12 +56,30 @@ const MainPage = () => {
     }
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (file) {
-      // Here you can add the logic to upload the file
-      console.log(`Uploading ${file.name} for ${operation} operation.`);
-      // Close the dialog after the upload action
-      handleCloseDialog();
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+  
+        // Send the file to the backend
+        const response = await axios.post("http://127.0.0.1:5000/api/upload", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            "Username": username,
+          },
+        });
+  
+        console.log("File uploaded successfully:", response.data);
+        alert("File uploaded successfully");
+  
+        // Navigate to the grid display page after successful upload
+        router.push(sessionStorage.getItem("route"));
+        handleCloseDialog(); // Close dialog after successful upload
+      } catch (error) {
+        console.error("Error uploading file:", error);
+        alert("Error uploading file");
+      }
     } else {
       alert("Please select a .txt file.");
     }
@@ -78,71 +87,47 @@ const MainPage = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static" sx={{ backgroundColor: "var(--steel-gray)" }}>
-        <Toolbar>
-          <IconButton
-            size="large"
-            edge="start"
-            color="inherit"
-            aria-label="logo"
-            sx={{ mr: 2 }}
-          >
-            <img
-              src="/crane.png" // Replace with your image path or URL
-              alt="Logo"
-              style={{ width: "40px", height: "40px" }}
-            />
-          </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Welcome, {username}!
-          </Typography>
-          <Button color="inherit" onClick={handleLogout}>
-            Logout
-          </Button>
-        </Toolbar>
-      </AppBar>
+      <MenuBar/>
 
       <Container maxWidth="md" style={{ marginTop: "50px" }}>
-        <Grid2 container direction="column" alignItems="center" spacing={3}>
-          <Grid2 item>
+        <Grid container direction="column" alignItems="center" spacing={3}>
+          <Grid item>
             <Typography variant="h4" component="h1" align="center">
               Which operation would you like to complete?
             </Typography>
-          </Grid2>
+          </Grid>
 
-          {/* Logo */}
-          <Grid2 item>
+          <Grid item>
             <img
               src="/logo.png" // Replace with your logo path
               alt="Logo"
               style={{ width: "200px", height: "auto" }}
             />
-          </Grid2>
+          </Grid>
 
-          {/* Buttons */}
-          <Grid2 item container justifyContent="center" spacing={2}>
-            <Grid2 item>
+          <Grid item container justifyContent="center" spacing={2}>
+            <Grid item>
               <Button
                 variant="contained"
                 size="large"
-                onClick={() => handleOpenDialog("Balancing")}
+                onClick={() => handleOpenDialog("Balancing", "/balance")}
                 sx={{ backgroundColor: "var(--dock-blue)" }}
               >
                 Balance
               </Button>
-            </Grid2>
-            <Grid2 item>
+            </Grid>
+            <Grid item>
               <Button
                 variant="contained"
                 size="large"
-                onClick={() => handleOpenDialog("Load/Unload")}
+                onClick={() => handleOpenDialog("Load/Unload", "load_unload")}
                 sx={{ backgroundColor: "var(--safety-orange)" }}
               >
                 Load/Unload
               </Button>
-            </Grid2>
-          </Grid2>
-        </Grid2>
+            </Grid>
+          </Grid>
+        </Grid>
       </Container>
 
       <Dialog open={open} onClose={handleCloseDialog}>
