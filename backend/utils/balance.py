@@ -25,8 +25,8 @@ def is_goal_state(weights):
             left += weights[rows][i]
         for i in range(6, 12):
             right += weights[rows][i]
-    if left == right:
-        return False
+    if left == right == 0:
+        return True
         
     return 1.1 > min(right,left) / max(right,left) > 0.9
 
@@ -52,7 +52,7 @@ def balance(weights, names):
             print('Balanced')
             return curr_weights, curr_names
         visited_row = tuple(tuple(row) for row in curr_weights)
-        if visited_row in visited_row:
+        if visited_row in visited:
             continue
         visited.add(visited_row)
 
@@ -81,7 +81,6 @@ def balance(weights, names):
                             open_set.append((total_cost,new_cost,new_weight,new_names))
                             break
                     break
-
         else:
             for r in range(0,8):
                 for c in range(6,12):
@@ -124,8 +123,9 @@ def floor_cargo(weights, names):
     return weights, names
 
 
-w, n = load_file('/Users/aakgna/Downloads/ShipCase4.txt')
+w, n = load_file('/Users/aakgna/Downloads/SilverQueen.txt')
 new_w, new_n = balance(w,n)
-w, n = floor_cargo(new_w, new_n)
-for r in n:
+if new_w and new_n:
+    w, n = floor_cargo(new_w, new_n)
+for r in w:
     print(r)
