@@ -95,7 +95,7 @@ def balance(weights, names):
 
         if left_weight > right_weight:
             for r in range(0,8):
-                for c in range(5,-1,-1):
+                for c in range(6):
                     if curr_weights[r][c] <= 0:
                         continue
                     temp_w = [list(row) for row in curr_weights]
@@ -121,6 +121,7 @@ def balance(weights, names):
                     temp_n[r][c] = 'UNUSED'
                     temp_m.append((r, c, cell[0], cell[1]))
                     open_set.append((total_cost, new_cost, temp_w, temp_n, temp_m))
+                    break
 
         else:
             for r in range(0,8):
@@ -150,11 +151,12 @@ def balance(weights, names):
                     temp_n[r][c] = 'UNUSED'
                     temp_m.append((r, c, cell[0], cell[1]))
                     open_set.append((total_cost, new_cost, temp_w, temp_n, temp_m))
+                    break
 
     print('No Solution')
     return None, None
 
-w, n = load_file('/Users/aakgna/Downloads/ShipCase4.txt')
+w, n = load_file('/Users/aakgna/Downloads/SilverQueen.txt')
 for r in w:
     print(r)
 
