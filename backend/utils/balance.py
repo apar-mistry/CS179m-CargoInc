@@ -1,7 +1,6 @@
 from collections import namedtuple
 import copy
-
-Cell = namedtuple('Cell', ['row', 'col'])
+import math
 
 def load_file(file):
     container_weights = [[], [], [], [], [], [], [], []]
@@ -35,10 +34,41 @@ def heuristic(weights):
     right_weight = sum(weights[row][i] for row in range(8) for i in range(6, 12))
     return left_weight, right_weight, abs(left_weight - right_weight)
 
+def find_closest_space(names, old_r, old_c, side):
+    smallest = math.inf
+    cell = [old_r, old_c]
+
+    if side == 'l':
+        for r in range(8):
+            for c in range(6):
+                if c == old_c:
+                    continue
+                if 'UNUSED' in names[r][c]:
+                    if r > 0 and 'UNUSED' in names[r-1][c]:
+                        continue
+                    manhattan = abs(r-old_r) + abs(c-old_c)
+                    if manhattan < smallest:
+                        cell = [r, c]
+                        smallest = manhattan
+    else:
+        for r in range(8):
+            for c in range(6, 12):
+                if c == old_c:
+                    continue
+                if 'UNUSED' in names[r][c]:
+                    if r > 0 and 'UNUSED' in names[r-1][c]:
+                        continue
+                    manhattan = abs(r-old_r) + abs(c-old_c)
+                    if manhattan < smallest:
+                        cell = [r, c]
+                        smallest = manhattan
+    return smallest, cell
+
+
 def balance(weights, names):
     # continue while open set has value in it
     open_set = []
-    start = (0, 0, weights, names)
+    start = (0, 0, weights, names, []) # added history component
     open_set.append(start)
 
     # to prevent the same configuration to be drawn again
@@ -47,9 +77,14 @@ def balance(weights, names):
     while open_set:
         # want the lowest costing operation
         sorted(open_set, key=lambda x: x[0])
-        total_cost, new_cost, curr_weights, curr_names = open_set.pop(0)
+        total_cost, new_cost, curr_weights, curr_names, moves = open_set.pop(0)
+
         if is_goal_state(curr_weights):
             print('Balanced')
+            print("Moves:")
+            for move in moves:
+                print(f"From: ({move[0]}, {move[1]}), To: ({move[2]}, {move[3]})")
+            print(total_cost)
             return curr_weights, curr_names
         visited_row = tuple(tuple(row) for row in curr_weights)
         if visited_row in visited:
@@ -63,69 +98,66 @@ def balance(weights, names):
                 for c in range(5,-1,-1):
                     if curr_weights[r][c] <= 0:
                         continue
-                    for i in range(6,12):
-                        if curr_names[r][i] == 'NAN':
-                            continue
-                        if curr_weights[r][i] == 0:
-                            new_weight = [list(r) for r in curr_weights]
-                            new_names = [list(r) for r in curr_names]
-                            new_weight[r][i] = new_weight[r][c]
-                            new_weight[r][c] = 0
-                            new_names[r][i] = new_names[r][c]
-                            new_names[r][c] = 'UNUSED'
-                            
-                            new_cost += 1
-                            _,_, h_cost = heuristic(new_weight)
-                            total_cost = new_cost + h_cost
+                    temp_w = [list(row) for row in curr_weights]
+                    temp_n = [list(row) for row in curr_names]
+                    temp_m = moves.copy()
 
-                            open_set.append((total_cost,new_cost,new_weight,new_names))
-                            break
-                    break
+                    for empty_r in range(7, r, -1):
+                        if temp_w[empty_r][c] == 0:
+                            continue
+                        dist, cell = find_closest_space(temp_n, empty_r, c, 'l')
+                        new_cost += dist
+                        temp_w[cell[0]][cell[1]] = temp_w[empty_r][c]
+                        temp_w[empty_r][c] = 0
+                        temp_n[cell[0]][cell[1]] = temp_n[empty_r][c]
+                        temp_n[empty_r][c] = 'UNUSED'
+                        temp_m.append((empty_r, c, cell[0], cell[1]))
+                    dist, cell = find_closest_space(temp_n, r, c, 'r')
+                    new_cost += dist
+                    total_cost = new_cost
+                    temp_w[cell[0]][cell[1]] = temp_w[r][c]
+                    temp_w[r][c] = 0
+                    temp_n[cell[0]][cell[1]] = temp_n[r][c]
+                    temp_n[r][c] = 'UNUSED'
+                    temp_m.append((r, c, cell[0], cell[1]))
+                    open_set.append((total_cost, new_cost, temp_w, temp_n, temp_m))
+
         else:
             for r in range(0,8):
                 for c in range(6,12):
                     if curr_weights[r][c] <= 0:
                         continue
-                    for i in range(5,-1,-1):
-                        if curr_names[r][i] == 'NAN':
-                            continue
-                        if curr_weights[r][i] == 0:
-                            new_weight = [list(r) for r in curr_weights]
-                            new_names = [list(r) for r in curr_names]
-                            new_weight[r][i] = new_weight[r][c]
-                            new_weight[r][c] = 0
-                            new_names[r][i] = new_names[r][c]
-                            new_names[r][c] = 'UNUSED'
-                            
-                            new_cost += 1
-                            _,_, h_cost = heuristic(new_weight)
-                            total_cost = new_cost + h_cost
+                    temp_w = [list(row) for row in curr_weights]
+                    temp_n = [list(row) for row in curr_names]
+                    temp_m = moves.copy()
 
-                            open_set.append((total_cost,new_cost,new_weight,new_names))
-                            break
-                    break
+                    for empty_r in range(7, r, -1):
+                        if temp_w[empty_r][c] == 0:
+                            continue
+                        dist, cell = find_closest_space(temp_n, empty_r, c, 'r')
+                        new_cost += dist
+                        temp_w[cell[0]][cell[1]] = temp_w[empty_r][c]
+                        temp_w[empty_r][c] = 0
+                        temp_n[cell[0]][cell[1]] = temp_n[empty_r][c]
+                        temp_n[empty_r][c] = 'UNUSED'
+                        temp_m.append((empty_r, c, cell[0], cell[1]))
+                    dist, cell = find_closest_space(temp_n, r, c, 'l')
+                    new_cost += dist
+                    total_cost = new_cost
+                    temp_w[cell[0]][cell[1]] = temp_w[r][c]
+                    temp_w[r][c] = 0
+                    temp_n[cell[0]][cell[1]] = temp_n[r][c]
+                    temp_n[r][c] = 'UNUSED'
+                    temp_m.append((r, c, cell[0], cell[1]))
+                    open_set.append((total_cost, new_cost, temp_w, temp_n, temp_m))
+
     print('No Solution')
     return None, None
 
-def floor_cargo(weights, names):
-    for c in range(len(weights[0])):
-        for r in range(1, len(weights)):
-            if weights[r][c] > 0:
-                curr = r
-                while curr > 0 and weights[curr-1][c] == 0:
-                    if 'NAN' in names[curr-1][c]:
-                        break
-                    weights[curr-1][c] = weights[curr][c]
-                    names[curr-1][c] = names[curr][c]
-                    weights[curr][c] = 0
-                    names[curr][c] = 'UNUSED'
-                    curr -=1
-    return weights, names
-
-
-w, n = load_file('/Users/aakgna/Downloads/SilverQueen.txt')
-new_w, new_n = balance(w,n)
-if new_w and new_n:
-    w, n = floor_cargo(new_w, new_n)
+w, n = load_file('/Users/aakgna/Downloads/ShipCase4.txt')
 for r in w:
+    print(r)
+
+new_w, new_n = balance(w,n)
+for r in new_w:
     print(r)
