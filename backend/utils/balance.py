@@ -85,7 +85,7 @@ def balance(weights, names):
             for move in moves:
                 print(f"From: ({move[0]}, {move[1]}), To: ({move[2]}, {move[3]})")
             print(total_cost)
-            return curr_weights, curr_names
+            return curr_weights, curr_names, moves
         visited_row = tuple(tuple(row) for row in curr_weights)
         if visited_row in visited:
             continue
@@ -154,12 +154,13 @@ def balance(weights, names):
                     break
 
     print('No Solution')
-    return None, None
+    return None, None, None
 
 w, n = load_file('/Users/aakgna/Downloads/SilverQueen.txt')
 for r in w:
     print(r)
 
-new_w, new_n = balance(w,n)
-for r in new_w:
-    print(r)
+new_w, new_n, moves = balance(w,n)
+if new_w != None:
+    for r in new_w:
+        print(r)
