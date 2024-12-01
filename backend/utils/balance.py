@@ -153,10 +153,46 @@ def balance(weights, names):
                     open_set.append((total_cost, new_cost, temp_w, temp_n, temp_m))
                     break
 
-    print('No Solution')
-    return None, None, None
+    # If balance isn't possible, use sift method
+    print('Balance not Possible, calling sift function')
+    sift_weights, sift_names, sift_moves = sift(weights, names)
 
-w, n = load_file('/Users/aakgna/Downloads/SilverQueen.txt')
+    return sift_weights, sift_names, sift_moves
+
+def sift(weights, names):
+
+    containers = []
+    for r in range(8):
+        for c in range(12):
+            if weights[r][c] > 0 and 'UNUSED' not in names[r][c] and 'NAN' not in names[r][c]:
+                containers.append({
+                    'weight': weights[r][c],
+                    'name': names[r][c],
+                    'position': (r, c)
+                })
+
+    containers.sort(key=lambda x: x['weight'], reverse=True)
+
+    sift_pattern = [6,5,7,4,8,3,9,2,10,1,11,0]
+    sift_weights = [[0 for i in range(12)] for j in range(8)]
+    sift_names = [['UNUSED' for i in range(12)] for j in range(8)]
+    sift_moves = []
+
+    curr_row = 0
+    for x, container in enumerate(containers):
+
+        curr_col = sift_pattern[x % len(sift_pattern)]
+        sift_weights[curr_row][curr_col] = container['weight']
+        sift_names[curr_row][curr_col] = container['name']
+        if (container['position'][0], container['position'][1]) != (curr_row, curr_col):
+            sift_moves.append((container['position'][0], container['position'][1], curr_row, curr_col))
+
+        if x % len(sift_pattern) == 0 and x > 0:
+            curr_row += 1
+        
+    return sift_weights, sift_names, sift_moves
+
+w, n = load_file('ShipCase5.txt')
 for r in w:
     print(r)
 
@@ -164,3 +200,11 @@ new_w, new_n, moves = balance(w,n)
 if new_w != None:
     for r in new_w:
         print(r)
+
+if new_n != None:
+    for n in new_n:
+        print(n)
+
+if moves != None:
+    for move in moves:
+        print(f"From: ({move[0]}, {move[1]}), To: ({move[2]}, {move[3]})")
