@@ -69,10 +69,10 @@ def get_valid_moves(weights, names):
 
 
 def is_valid_position(weights, names, row, col):
-    if names[row][col] == 'NAN' or weights[row][col] > 0:
+    if names[row][col] == ' NAN' or weights[row][col] > 0:
         return False
     if row > 0:
-        if names[row - 1][col] == 'UNUSED':
+        if names[row - 1][col] == ' UNUSED':
             return False
     if row  < 7:
         if weights[row + 1][col] > 0:
@@ -111,7 +111,7 @@ def balance(weights, names):
     visited_states = set()
     start_state = tuple(tuple(row) for row in weights)
     g_scores = {start_state: 0}
-    f_scores = {start_state: float('inf')}
+    f_scores = {start_state: calculate_f_score(weights, 0)}
     open_set = [(f_scores[start_state], 0, weights, names, [])]
 
     best_solution = None
@@ -133,6 +133,9 @@ def balance(weights, names):
         if is_goal_state(curr_weights):
             current_score = calculate_f_score(curr_weights, curr_g_score)
             if current_score < best_score:
+                for r in curr_weights:
+                    print(r)
+                print("==============")
                 best_solution = (curr_weights, curr_names, curr_moves)
                 best_score = current_score
                 best_g = curr_g_score
@@ -214,7 +217,7 @@ def process(input_file):
         new_w, new_n, moves = sift(w, n)
     return new_w, new_n, moves
 
-w, n, m = process('/Users/aakgna/Documents/CS179m-CargoInc/backend/SilverQueen.txt')
+w, n, m = process('/Users/aakgna/Documents/CS179m-CargoInc/backend/ShipCase4.txt')
 print("===========================")
 for r in w:
     print(r)
