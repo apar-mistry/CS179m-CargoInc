@@ -1,6 +1,7 @@
 from collections import namedtuple
 import copy
 import math
+from heapq import heappop, heappush
 
 def load_file(file):
     container_weights = [[], [], [], [], [], [], [], []]
@@ -29,132 +30,112 @@ def is_goal_state(weights):
         
     return 1.1 > min(right,left) / max(right,left) > 0.9
 
-def heuristic(weights):
+def calculate_f_score(weights, g_score):
     left_weight = sum(weights[row][i] for row in range(8) for i in range(6))
     right_weight = sum(weights[row][i] for row in range(8) for i in range(6, 12))
-    return left_weight, right_weight, abs(left_weight - right_weight)
+    weight_diff = abs(left_weight - right_weight)
 
-def find_closest_space(names, old_r, old_c, side):
-    smallest = math.inf
-    cell = [old_r, old_c]
+    total_containers = 0
+    for row in weights:
+        for w in row:
+            if w > 0:
+                total_containers += 1
+    avg_weight = (left_weight + right_weight)/total_containers if total_containers > 0 else 1
+    h_score = weight_diff / avg_weight
 
-    if side == 'l':
-        for r in range(8):
-            for c in range(6):
-                if c == old_c:
-                    continue
-                if 'UNUSED' in names[r][c]:
-                    if r > 0 and 'UNUSED' in names[r-1][c]:
-                        continue
-                    manhattan = abs(r-old_r) + abs(c-old_c)
-                    if manhattan < smallest:
-                        cell = [r, c]
-                        smallest = manhattan
-    else:
-        for r in range(8):
-            for c in range(6, 12):
-                if c == old_c:
-                    continue
-                if 'UNUSED' in names[r][c]:
-                    if r > 0 and 'UNUSED' in names[r-1][c]:
-                        continue
-                    manhattan = abs(r-old_r) + abs(c-old_c)
-                    if manhattan < smallest:
-                        cell = [r, c]
-                        smallest = manhattan
-    return smallest, cell
+    return g_score + h_score
+
+def get_valid_moves(weights, names):
+    moves = []
+
+    for row1 in range(8):
+        for col1 in range(12):
+            if weights[row1][col1] > 0:
+                container_above = False
+                for r in range(row1 + 1, 8):
+                    if weights[r][col1] > 0:
+                        container_above = True
+                        break
+
+                if container_above is not True:
+                    for row2 in range(8):
+                        for col2 in range(12):
+                            if col1 != col2 and is_valid_position(weights, names, row2, col2):
+                                moves.append((row1, col1, row2, col2))
+
+
+    return moves
+
+
+def is_valid_position(weights, names, row, col):
+    if names[row][col] == 'NAN' or weights[row][col] > 0:
+        return False
+    if row > 0:
+        if names[row - 1][col] == 'UNUSED':
+            return False
+    if row  < 7:
+        if weights[row + 1][col] > 0:
+            return False
+    return True
 
 
 def balance(weights, names):
-    # continue while open set has value in it
-    open_set = []
-    start = (0, 0, weights, names, []) # added history component
-    open_set.append(start)
+    
+    visited_states = set()
+    start_state = tuple(tuple(row) for row in weights)
+    g_scores = {start_state: 0}
+    f_scores = {start_state: float('inf')}
+    open_set = [(f_scores[start_state], 0, weights, names, [])]
 
-    # to prevent the same configuration to be drawn again
-    visited = set()
+    best_solution = None
+    best_score = float('inf')
+    best_g = float('inf')
 
     while open_set:
-        # want the lowest costing operation
-        sorted(open_set, key=lambda x: x[0])
-        total_cost, new_cost, curr_weights, curr_names, moves = open_set.pop(0)
+        if all(g_score > best_g for f, g_score, w, n, m in open_set):
+            break
+        
+        temp_f, curr_g_score, curr_weights, curr_names, curr_moves = heappop(open_set)
+        curr_state = tuple(tuple(row) for row in curr_weights)
+
+        if curr_state not in visited_states:
+            visited_states.add(curr_state)
 
         if is_goal_state(curr_weights):
-            print('Balanced')
-            print("Moves:")
-            for move in moves:
-                print(f"From: ({move[0]}, {move[1]}), To: ({move[2]}, {move[3]})")
-            print(total_cost)
-            return curr_weights, curr_names, moves
-        visited_row = tuple(tuple(row) for row in curr_weights)
-        if visited_row in visited:
-            continue
-        visited.add(visited_row)
+            current_score = calculate_f_score(curr_weights, curr_g_score)
+            if current_score < best_score:
+                best_solution = (curr_weights, curr_names, curr_moves)
+                best_score = current_score
+                best_g = curr_g_score
+        
+        for move in get_valid_moves(curr_weights, curr_names):
+            row1, col1, row2, col2 = move
 
-        left_weight, right_weight, heuristic_val = heuristic(curr_weights)
+            new_weights = [list(row) for row in curr_weights]
+            new_names = [list(row) for row in curr_names]
+            new_weights[row2][col2] = new_weights[row1][col1]
+            new_weights[row1][col1] = 0
+            new_names[row2][col2] = new_names[row1][col1]
+            new_names[row1][col1] = 'UNUSED'
 
-        if left_weight > right_weight:
-            for r in range(0,8):
-                for c in range(6):
-                    if curr_weights[r][c] <= 0:
-                        continue
-                    temp_w = [list(row) for row in curr_weights]
-                    temp_n = [list(row) for row in curr_names]
-                    temp_m = moves.copy()
+            new_state = tuple(tuple(row) for row in new_weights)
+            move_cost = abs(row1 - row2) + abs(col1 - col2)
+            test_g_score = curr_g_score + move_cost
 
-                    for empty_r in range(7, r, -1):
-                        if temp_w[empty_r][c] == 0:
-                            continue
-                        dist, cell = find_closest_space(temp_n, empty_r, c, 'l')
-                        new_cost += dist
-                        temp_w[cell[0]][cell[1]] = temp_w[empty_r][c]
-                        temp_w[empty_r][c] = 0
-                        temp_n[cell[0]][cell[1]] = temp_n[empty_r][c]
-                        temp_n[empty_r][c] = 'UNUSED'
-                        temp_m.append((empty_r, c, cell[0], cell[1]))
-                    dist, cell = find_closest_space(temp_n, r, c, 'r')
-                    new_cost += dist
-                    total_cost = new_cost
-                    temp_w[cell[0]][cell[1]] = temp_w[r][c]
-                    temp_w[r][c] = 0
-                    temp_n[cell[0]][cell[1]] = temp_n[r][c]
-                    temp_n[r][c] = 'UNUSED'
-                    temp_m.append((r, c, cell[0], cell[1]))
-                    open_set.append((total_cost, new_cost, temp_w, temp_n, temp_m))
-                    break
+            if new_state not in g_scores or test_g_score < g_scores[new_state]:
+                g_scores[new_state] = test_g_score
+                f_score = calculate_f_score(new_weights, test_g_score)
+                f_scores[new_state] = f_score
+                new_moves = curr_moves + [move]
+                heappush(open_set, (f_score, test_g_score, new_weights, new_names, new_moves))
 
-        else:
-            for r in range(0,8):
-                for c in range(6,12):
-                    if curr_weights[r][c] <= 0:
-                        continue
-                    temp_w = [list(row) for row in curr_weights]
-                    temp_n = [list(row) for row in curr_names]
-                    temp_m = moves.copy()
 
-                    for empty_r in range(7, r, -1):
-                        if temp_w[empty_r][c] == 0:
-                            continue
-                        dist, cell = find_closest_space(temp_n, empty_r, c, 'r')
-                        new_cost += dist
-                        temp_w[cell[0]][cell[1]] = temp_w[empty_r][c]
-                        temp_w[empty_r][c] = 0
-                        temp_n[cell[0]][cell[1]] = temp_n[empty_r][c]
-                        temp_n[empty_r][c] = 'UNUSED'
-                        temp_m.append((empty_r, c, cell[0], cell[1]))
-                    dist, cell = find_closest_space(temp_n, r, c, 'l')
-                    new_cost += dist
-                    total_cost = new_cost
-                    temp_w[cell[0]][cell[1]] = temp_w[r][c]
-                    temp_w[r][c] = 0
-                    temp_n[cell[0]][cell[1]] = temp_n[r][c]
-                    temp_n[r][c] = 'UNUSED'
-                    temp_m.append((r, c, cell[0], cell[1]))
-                    open_set.append((total_cost, new_cost, temp_w, temp_n, temp_m))
-                    break
+    if best_solution:
+        fweights, fnames, fmoves = best_solution
+        return fweights, fnames, fmoves
 
     # If balance isn't possible, use sift method
-    print('Balance not Possible, calling sift function')
+    print('Balance not possible, calling sift function')
     sift_weights, sift_names, sift_moves = sift(weights, names)
 
     return sift_weights, sift_names, sift_moves
@@ -192,7 +173,7 @@ def sift(weights, names):
         
     return sift_weights, sift_names, sift_moves
 
-w, n = load_file('ShipCase5.txt')
+w, n = load_file('/Users/kotasawada/Documents/CargoInc/CS179m-CargoInc/backend/utils/ShipCase5.txt')
 for r in w:
     print(r)
 
@@ -208,3 +189,5 @@ if new_n != None:
 if moves != None:
     for move in moves:
         print(f"From: ({move[0]}, {move[1]}), To: ({move[2]}, {move[3]})")
+
+
