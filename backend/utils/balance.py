@@ -205,41 +205,47 @@ def sift(weights, names):
         
     return sift_weights, sift_names, sift_moves
 
+def calculate_cost(old_weights, moves):
+    total_cost = 0
+
+    for move in moves:
+        start = [move[0], move[1]]
+        end = [move[2], move[3]]
+
+        while start != end:
+            if start[1] < end[1]:
+                if old_weights[start[0]][start[1] + 1] == 0:
+                    start[1] += 1
+                else:
+                    start[0] += 1
+                total_cost += 1
+            elif start[1] > end[1]:
+                if old_weights[start[0]][start[1] - 1] == 0:
+                    start[1] -= 1
+                else:
+                    start[0] += 1
+                total_cost += 1
+            elif start[0] < end[0]:
+                start[0] += 1
+                total_cost += 1
+            elif start[0] > end[0]:
+                start[0] -= 1
+                total_cost += 1
+        
+        old_weights[end[0]][end[1]] = old_weights[move[0]][move[1]]
+        old_weights[move[0]][move[1]] = 0
+        
+    return total_cost
+
 def process(input_file):
     w, n = load_file(input_file)
-    for r in w:
-        print(r)
     if can_balance(w):
         print("Balance")
         new_w, new_n, moves = balance(w, n)
     else:
         print('sift')
         new_w, new_n, moves = sift(w, n)
-    return new_w, new_n, moves
+    cost = calculate_cost(w, moves)
+    return new_w, new_n, moves, cost
 
-w, n, m = process('/Users/aakgna/Documents/CS179m-CargoInc/backend/ShipCase4.txt')
-print("===========================")
-for r in w:
-    print(r)
-for move in m:
-    print(f"From: ({move[0]}, {move[1]}), To: ({move[2]}, {move[3]})")
-
-# w, n = load_file('../ShipCase4.txt')
-# print(can_balance(w))
-# for r in w:
-#     print(r)
-
-# new_w, new_n, moves = balance(w,n)
-# if new_w != None:
-#     for r in new_w:
-#         print(r)
-
-# if new_n != None:
-#     for n in new_n:
-#         print(n)
-
-# if moves != None:
-#     for move in moves:
-#         print(f"From: ({move[0]}, {move[1]}), To: ({move[2]}, {move[3]})")
-
-
+w, n, m, c = process('../SilverQueen.txt')
