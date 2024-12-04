@@ -2,6 +2,7 @@ from collections import namedtuple
 import copy
 import math
 from heapq import heappop, heappush
+from itertools import combinations 
 
 def load_file(file):
     container_weights = [[], [], [], [], [], [], [], []]
@@ -78,6 +79,32 @@ def is_valid_position(weights, names, row, col):
             return False
     return True
 
+def can_balance(weights):
+    numbers = []
+    for row in weights:
+        for num in row:
+            if num != 0:
+                numbers.append(num)
+
+    if len(numbers) < 2:
+        return False
+    
+    numbers.sort()
+    
+    for l in range(1, len(numbers)):
+        for left in combinations(numbers, l):
+            left_arr = list(left)
+            left_sum = sum(left_arr)
+            right = [x for x in numbers if x not in left]
+            right_sum = sum(right)
+            
+            min_sum = min(left_sum, right_sum)
+            max_sum = max(left_sum, right_sum)
+
+            if (left_sum + right_sum == sum(numbers)) and (max_sum > 0) and (min_sum / max_sum > 0.9):
+                return True
+    return False
+
 
 def balance(weights, names):
     
@@ -100,6 +127,8 @@ def balance(weights, names):
 
         if curr_state not in visited_states:
             visited_states.add(curr_state)
+        else:
+            continue
 
         if is_goal_state(curr_weights):
             current_score = calculate_f_score(curr_weights, curr_g_score)
@@ -173,21 +202,41 @@ def sift(weights, names):
         
     return sift_weights, sift_names, sift_moves
 
-w, n = load_file('/Users/kotasawada/Documents/CargoInc/CS179m-CargoInc/backend/utils/ShipCase5.txt')
+def process(input_file):
+    w, n = load_file(input_file)
+    for r in w:
+        print(r)
+    if can_balance(w):
+        print("Balance")
+        new_w, new_n, moves = balance(w, n)
+    else:
+        print('sift')
+        new_w, new_n, moves = sift(w, n)
+    return new_w, new_n, moves
+
+w, n, m = process('/Users/aakgna/Documents/CS179m-CargoInc/backend/SilverQueen.txt')
+print("===========================")
 for r in w:
     print(r)
+for move in m:
+    print(f"From: ({move[0]}, {move[1]}), To: ({move[2]}, {move[3]})")
 
-new_w, new_n, moves = balance(w,n)
-if new_w != None:
-    for r in new_w:
-        print(r)
+# w, n = load_file('../ShipCase4.txt')
+# print(can_balance(w))
+# for r in w:
+#     print(r)
 
-if new_n != None:
-    for n in new_n:
-        print(n)
+# new_w, new_n, moves = balance(w,n)
+# if new_w != None:
+#     for r in new_w:
+#         print(r)
 
-if moves != None:
-    for move in moves:
-        print(f"From: ({move[0]}, {move[1]}), To: ({move[2]}, {move[3]})")
+# if new_n != None:
+#     for n in new_n:
+#         print(n)
+
+# if moves != None:
+#     for move in moves:
+#         print(f"From: ({move[0]}, {move[1]}), To: ({move[2]}, {move[3]})")
 
 
