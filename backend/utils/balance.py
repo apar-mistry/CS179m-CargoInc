@@ -214,6 +214,35 @@ def loading(weights, names, containers_to_load):
             
     return weights, names, moves
 
+def find_closest_space(names, old_r, old_c, side):
+    smallest = math.inf
+    cell = [old_r, old_c]
+    if side == 'l':
+        for r in range(8):
+            for c in range(6):
+                if c == old_c:
+                    continue
+                if 'UNUSED' in names[r][c]:
+                    if r > 0 and 'UNUSED' in names[r-1][c]:
+                        continue
+                    manhattan = abs(r-old_r) + abs(c-old_c)
+                    if manhattan < smallest:
+                        cell = [r, c]
+                        smallest = manhattan
+    else:
+        for r in range(8):
+            for c in range(6, 12):
+                if c == old_c:
+                    continue
+                if 'UNUSED' in names[r][c]:
+                    if r > 0 and 'UNUSED' in names[r-1][c]:
+                        continue
+                    manhattan = abs(r-old_r) + abs(c-old_c)
+                    if manhattan < smallest:
+                        cell = [r, c]
+                        smallest = manhattan
+    return smallest, cell
+
 def balance(weights, names):
     
     visited_states = set()
