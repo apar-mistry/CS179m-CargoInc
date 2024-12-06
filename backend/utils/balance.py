@@ -1,5 +1,6 @@
 from collections import namedtuple
 import copy
+from heapq import heappush, heappop
 import math
 
 def load_file(file):
@@ -64,6 +65,113 @@ def find_closest_space(names, old_r, old_c, side):
                         smallest = manhattan
     return smallest, cell
 
+def a_star_unloading(weights, names, goal_unload):
+    #A* for optimizing unloading
+    open_set = []
+    visited = set()
+    
+    #initial state
+    start_state = {
+        "weights": weights, 
+        "names": names, 
+        "remaining_moves": goal_unload, 
+        "cost": 0, 
+        "history": []
+    }
+    heappush(open_set, (0, start_state))
+    
+    while open_set:
+        _, current_state = heappop(open_set)
+        
+        #check if all containers are unloaded
+        if not current_state["remaining_moves"]:
+            print("Unloading optimized!")
+            print("Moves:", current_state["history"])
+            return current_state["weights"], current_state["names"], current_state["history"]
+        
+        #Prevent revisiting states
+        state_tuple = tuple(tuple(row) for row in current_state["weights"])
+        if state_tuple in visited:
+            continue
+        visited.add(state_tuple)
+        
+        for container in current_state["remaining_moves"]:
+            r, c = container
+            
+            #generate a new state with the container unloaded
+            new_weights = copy.deepcopy(current_state["weights"])
+            new_names = copy.deepcopy(current_state["names"])
+            new_history = current_state["history"].copy()
+            
+            #move any blocking containers
+            for row_above in range(r-1, -1, -1):
+                if new_weights[row_above][c] > 0:
+                    _, closest_space = find_closest_space(new_names, row_above, c, side='l')
+                    new_weights[closest_space[0]][closest_space[1]] = new_weights[row_above][c]
+                    new_weights[row_above][c] = 0
+                    new_names[closest_space[0]][closest_space[1]] = new_names[row_above][c]
+                    new_names[row_above][c] = 'UNUSED'
+                    new_history.append((row_above, c, closest_space[0], closest_space[1]))
+            
+            #unload the target container
+            new_weights[r][c] = 0
+            new_names[r][c] = 'UNUSED'
+            new_history.append((r, c, -1, -1)) #-1, -1 indicates unloading
+            
+            #calculate cost
+            new_cost = current_state["cost"] + abs(r - 7) + abs(c - 0)
+            
+            #add the new state to the open set
+            new_state = {
+                "weights": new_weights, 
+                "names": new_names, 
+                "remaining_moves": [
+                    move for move in current_state["remaining_moves"] if move != (r, c)
+                    ],
+                "cost": new_cost, 
+                "history": new_history
+            }
+            heappush(open_set, (new_cost, new_state))
+        
+    print("No valid unloading sequence found.")
+    return None, None, None
+
+def loading(weights, names, containers_to_load):
+    moves = []
+    
+    for container in containers_to_load:
+        #extract container information
+        container_weight = container['weight']
+        container_name = container['name']
+        
+        #calculate left and right side weights
+        left_weight = sum(weights[row][col] for row in range(8) for col in range(6))
+        right_weight = sum(weights[row][col] for row in range(8) for col in range(6, 12))
+        
+        #decide which side to load the container (prioritize lighter side)
+        side = 'l' if left_weight < right_weight else 'r'
+        
+        #find the closest available space on the chosen side
+        _, closest_space = find_closest_space(names, 0, 0, side)
+        if closest_space == [0, 0]: #if not space found on chosen side, try the other side
+            side = 'r' if side == 'l' else 'l'
+            _, closest_space = find_closest_space(names, 0, 0, side)
+            
+        #place the container in the chosen space
+        r, c = closest_space
+        weights[r][c] = container_weight
+        names[r][c] = container_name
+        
+        #log the move
+        moves.append({'container': container_name, 'position': (r+1, c+1)})
+        print(f"Loaded container '{container_name}' at position ({r + 1}, {c + 1})")
+        
+        #periodically check balance and adjust if necessary 
+        if not is_goal_state(weights):
+            print("Rebalancing the ship...")
+            weights, names, _ = balance(weights, names)
+            
+    return weights, names, moves
 
 def balance(weights, names):
     # continue while open set has value in it
