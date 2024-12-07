@@ -149,7 +149,7 @@ def finalize_balance():
     output_file_path = os.path.join(outbound_dir, output_filename)
     with open(output_file_path, "w") as f:
         f.write(formatted_text)
-    log_complete(f"Finished a Balance. Manifest {output_filename} was written to desktop, and a reminder pop-up to operator to send file was displayed.")
+    log_complete(f"Finished a Balance. Manifest {filename[:-4]}OUTBOUND.txt was written to desktop, and a reminder pop-up to operator to send file was displayed.")
     return jsonify({"message": "Manifest finalized and saved.", "file": output_file_path}), 200
 
 if __name__ == '__main__':
