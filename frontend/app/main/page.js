@@ -75,7 +75,7 @@ const MainPage = () => {
 
         console.log("File uploaded successfully:", response.data);
         alert("File uploaded successfully");
-
+        // const res = await axios.get("http://127.0.0.1:5000/api/balance");
         // Navigate to the grid display page after successful upload
         router.push(sessionStorage.getItem("route"));
         handleCloseDialog(); // Close dialog after successful upload
