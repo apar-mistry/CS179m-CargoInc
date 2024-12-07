@@ -59,6 +59,12 @@ def log_logout():
 def upload_file():
     global filename
     global grid_data  # Use the global variable to store data temporarily
+
+    # Clear the upload directory
+    if os.path.exists(app.config['UPLOAD_FOLDER']):
+        shutil.rmtree(app.config['UPLOAD_FOLDER'])  # Remove the folder and its contents
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)  # Recreate the directory
+
     if 'file' not in request.files:
         return jsonify({"error": "No file part in the request"}), 400
     
@@ -69,6 +75,7 @@ def upload_file():
     filename = file.filename
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     
+    # Save the uploaded file
     file.save(file_path)
     grid_data = parseData(file_path)
     count_entries = sum(1 for entry in grid_data if entry['status'] not in ("UNUSED", "NAN"))
@@ -105,7 +112,7 @@ def balance():
             return jsonify({"error": "No files found in uploads directory"}), 404
 
         # Assuming there is only one file, use the first one
-        file_path = file_list[0]
+        file_path = file_list[-1]
 
         print(f"Processing file: {file_path}")
         
@@ -134,13 +141,11 @@ def finalize_balance():
     desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
     log_dir = os.path.join(desktop_path, "logs")
 
-    # Create the outbound_manifests directory
     outbound_dir = os.path.join(log_dir, "outbound_manifests")
     if not os.path.exists(outbound_dir):
         os.makedirs(outbound_dir)
 
-    # Create the output filename by appending "OUTBOUND" before ".txt"
-    output_filename = f"{filename}OUTBOUND.txt"
+    output_filename = f"{filename[:-4]}OUTBOUND.txt"  
     output_file_path = os.path.join(outbound_dir, output_filename)
     with open(output_file_path, "w") as f:
         f.write(formatted_text)
@@ -148,4 +153,4 @@ def finalize_balance():
     return jsonify({"message": "Manifest finalized and saved.", "file": output_file_path}), 200
 
 if __name__ == '__main__':
-    app.run(port=5000)  # Flask backend will run on port 5000
+    app.run(port=5000) 
