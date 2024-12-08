@@ -301,6 +301,18 @@ def calculate_cost(old_weights, moves):
         old_weights[move[0]][move[1]] = 0
         
     return total_cost
+def map_nested_grid(nested_data):
+    # Define the transformation logic
+    def map_values(row):
+        return [
+            value + 1 if index % 2 == 0 else value + 1  # Add 1 to both x (even) and y (odd)
+            for index, value in enumerate(row)
+        ]
+
+    # Apply the transformation to each row in the nested grid
+    mapped_data = [map_values(row) for row in nested_data]
+    return mapped_data
+
 
 def process(input_file):
     w, n = load_file(input_file)
@@ -311,6 +323,6 @@ def process(input_file):
         print('sift')
         new_w, new_n, moves = sift(w, n)
     cost = calculate_cost(w, moves)
-    return new_w, new_n, moves, cost
+    return new_w, new_n, map_nested_grid(moves), cost
 
-w, n, m, c = process('../SilverQueen.txt')
+# print(process('../ShipCase5.txt'))
