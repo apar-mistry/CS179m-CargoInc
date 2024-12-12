@@ -17,13 +17,10 @@ import DeleteIcon from "@mui/icons-material/Delete"; // Ensure this is imported
 import MenuBar from "../components/MenuBar";
 import CommentButton from "../components/comment";
 import { useRouter } from "next/navigation";
-
 export default function LuPage() {
   const router = useRouter();
   const ROWS = 8;
   const COLS = 12;
-
-  // Initialize grid state
   const [grid, setGrid] = useState(() =>
     Array.from({ length: ROWS }, (_, rowIndex) =>
       Array.from({ length: COLS }, (_, colIndex) => ({
@@ -36,42 +33,34 @@ export default function LuPage() {
     )
   );
 
-  // BUFFER to hold containers temporarily
   const [buffer, setBuffer] = useState([]);
 
-  // State for response data
   const [responseData, setResponseData] = useState(null);
 
-  // Visualization states
   const [currentMoveIndex, setCurrentMoveIndex] = useState(0);
   const [currentMoveMessage, setCurrentMoveMessage] = useState("");
 
-  // Loading and error states
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [timeStamp, setTimeStamp] = useState("");
 
-  // Mode states
-  const [mode, setMode] = useState(null); // 'loading', 'unloading', or null
+  const [mode, setMode] = useState(null); 
   const [highlightedCells, setHighlightedCells] = useState([]);
   const [selectedUnloadCells, setSelectedUnloadCells] = useState([]);
 
-  // Container weight mapping
+
   const [containerWeights, setContainerWeights] = useState({});
 
-  // Load Queue
+
   const [loadQueue, setLoadQueue] = useState([]);
 
-  // Inputs for adding containers to the load queue
   const [newContainer, setNewContainer] = useState({
     name: "",
     weight: "",
   });
 
-  // State to track if all moves have been processed
   const [allMovesProcessed, setAllMovesProcessed] = useState(false);
 
-  // Reset selections after operations
   const resetSelections = () => {
     setSelectedUnloadCells([]);
     setMode(null);
@@ -79,12 +68,10 @@ export default function LuPage() {
     setCurrentMoveMessage("");
   };
 
-  // Log changes to responseData for debugging
   useEffect(() => {
     console.log("responseData Updated:", responseData);
   }, [responseData]);
 
-  // Fetch initial grid data on component mount
   useEffect(() => {
     async function fetchInitialData() {
       try {
@@ -102,7 +89,6 @@ export default function LuPage() {
           const [r, c] = cell.position.split(",").map(Number);
           updatedGrid[8 - r][c - 1] = cell;
 
-          // Build containerWeights mapping
           if (cell.status !== "UNUSED" && cell.status !== "NAN") {
             if (!weightsMapping[cell.status]) {
               weightsMapping[cell.status] = cell.weight;
@@ -122,27 +108,23 @@ export default function LuPage() {
     }
 
     fetchInitialData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Helper function to check valid positions
   const isValidPosition = (row, col) => {
     return row >= 1 && row <= ROWS && col >= 1 && col <= COLS;
   };
 
-  // Update highlighted cells based on mode and selections
   const updateHighlightedCells = () => {
     const highlighted = [];
     for (let row = 0; row < ROWS; row++) {
       for (let col = 0; col < COLS; col++) {
-        const cell = grid[row]?.[col]; // Safely access the cell
-        if (!cell) continue; // Skip if the cell is undefined
+        const cell = grid[row]?.[col]; 
+        if (!cell) continue; 
 
         if (
           mode === "unloading" ||
           selectedUnloadCells.includes(cell.position)
         ) {
-          // Highlight cells that are FILLED for unloading
           if (cell.status !== "NAN" && cell.status !== "UNUSED") {
             highlighted.push(cell.position);
           }
@@ -155,28 +137,22 @@ export default function LuPage() {
 
   useEffect(() => {
     updateHighlightedCells();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, grid, selectedUnloadCells]);
 
-  // Handle mode switching between 'loading' and 'unloading'
   const handleModeSwitch = (newMode) => {
     setMode(newMode);
-    // Clear selections when switching modes
     setSelectedUnloadCells([]);
     setCurrentMoveMessage("");
-    setAllMovesProcessed(false); // Reset the flag
+    setAllMovesProcessed(false); 
     console.log(`Mode switched to: ${newMode}`);
   };
 
-  // Handle grid cell clicks based on current mode
   const handleGridClick = (position) => {
     if (!highlightedCells.includes(position)) {
-      // Clicked cell is not highlighted; no action
       return;
     }
 
     if (mode === "unloading") {
-      // Toggle selection for unloading
       setSelectedUnloadCells((prev) =>
         prev.includes(position)
           ? prev.filter((cell) => cell !== position)
@@ -191,7 +167,6 @@ export default function LuPage() {
     }
   };
 
-  // **New Function:** Add container to load queue
   const handleAddToLoadQueue = () => {
     const { name, weight } = newContainer;
     if (name.trim() === "" || weight.trim() === "") {
@@ -199,14 +174,12 @@ export default function LuPage() {
       return;
     }
 
-    // Validate weight is a positive number
     const weightNum = parseInt(weight, 10);
     if (isNaN(weightNum) || weightNum <= 0) {
       alert("Please enter a valid positive number for weight.");
       return;
     }
 
-    // Optional: Check for duplicate container names
     if (loadQueue.some((container) => container.name === name.trim())) {
       alert("Container name must be unique.");
       return;
@@ -217,19 +190,16 @@ export default function LuPage() {
       { name: name.trim(), weight: weightNum.toString().padStart(5, "0") },
     ]);
 
-    // Reset input fields
     setNewContainer({ name: "", weight: "" });
     console.log(`Added container to load queue: ${name.trim()}`);
   };
 
-  // **New Function:** Remove container from load queue
   const handleRemoveFromLoadQueue = (index) => {
     const removed = loadQueue[index];
     setLoadQueue((prevQueue) => prevQueue.filter((_, i) => i !== index));
     console.log(`Removed container from load queue: ${removed.name}`);
   };
 
-  // Handle final confirmation of load/unload actions
   const handleFinalConfirm = () => {
     if (loadQueue.length > 0 || selectedUnloadCells.length > 0) {
       sendDataToAPI();
@@ -238,7 +208,6 @@ export default function LuPage() {
     }
   };
 
-  // Send load/unload data to the API
   const sendDataToAPI = async () => {
     const clickTime = new Date();
     const loadContainers = loadQueue.map((container) => ({
@@ -266,9 +235,8 @@ export default function LuPage() {
 
       const result = await response.json();
       const totalTime = result.total_time;
-      const endTimeDate = new Date(clickTime.getTime() + totalTime * 60000); // Add minutes
+      const endTimeDate = new Date(clickTime.getTime() + totalTime * 60000); 
 
-      // Helper function to format time in military format
       const formatTimeMilitary = (date) => {
         const hours = date.getHours().toString().padStart(2, "0");
         const minutes = date.getMinutes().toString().padStart(2, "0");
@@ -277,8 +245,8 @@ export default function LuPage() {
 
       const formattedEndTime = formatTimeMilitary(endTimeDate);
       setTimeStamp(formattedEndTime);
-      setResponseData(result); // Save the response directly for processing
-      setCurrentMoveIndex(0); // Reset move index
+      setResponseData(result); 
+      setCurrentMoveIndex(0); 
       console.log("Server Response:", result);
     } catch (error) {
       setError(error.message);
@@ -289,7 +257,6 @@ export default function LuPage() {
     resetSelections();
   };
 
-  // Handle execution of the next move in the responseData
   const handleNextMove = () => {
     if (!responseData) {
       setCurrentMoveMessage("No moves to process.");
@@ -319,9 +286,7 @@ export default function LuPage() {
     console.log(`Processed move ${currentMoveIndex + 1}:`, move);
   };
 
-  // Execute a single move based on its type
   const executeMove = async (move, moveCategory) => {
-    // Generate a descriptive message for the move
     let message = "";
     console.log("Executing move:", move);
 
@@ -332,7 +297,6 @@ export default function LuPage() {
           move.to !== "BUFFER" &&
           move.from !== "BUFFER"
         ) {
-          // Move from grid cell to another grid cell
           const [fromRow, fromCol] = move.from;
           const [toRow, toCol] = move.to;
           setGrid((prevGrid) => {
@@ -347,12 +311,10 @@ export default function LuPage() {
               container.status !== "NAN" &&
               isValidPosition(toRow, toCol)
             ) {
-              // Move container to new position
               updatedGrid[toGridRow][toGridCol] = {
                 status: container.status,
                 weight: container.weight,
               };
-              // Clear the original position
               updatedGrid[fromGridRow][fromGridCol] = {
                 status: "UNUSED",
                 weight: "00000",
@@ -367,7 +329,6 @@ export default function LuPage() {
             return updatedGrid;
           });
         } else if (move.to === "BUFFER") {
-          // Move from grid cell to BUFFER
           const [row, col] = move.from;
           setGrid((prevGrid) => {
             const updatedGrid = prevGrid.map((rowArr) => [...rowArr]);
@@ -375,12 +336,10 @@ export default function LuPage() {
             const gridCol = col - 1;
             const container = updatedGrid[gridRow][gridCol];
             if (container.status !== "UNUSED" && container.status !== "NAN") {
-              // Add to buffer
               setBuffer((prevBuffer) => [
                 ...prevBuffer,
                 { ...container, original_position: [row, col] },
               ]);
-              // Remove from grid
               updatedGrid[gridRow][gridCol] = {
                 status: "UNUSED",
                 weight: "00000",
@@ -396,7 +355,6 @@ export default function LuPage() {
             return updatedGrid;
           });
         } else if (move.to === "UNLOAD") {
-          // Unload completely from grid
           const [row, col] = move.from;
           setGrid((prevGrid) => {
             const updatedGrid = prevGrid.map((rowArr) => [...rowArr]);
@@ -404,7 +362,6 @@ export default function LuPage() {
             const gridCol = col - 1;
             const container = updatedGrid[gridRow][gridCol];
             if (container.status !== "UNUSED" && container.status !== "NAN") {
-              // Remove from grid
               updatedGrid[gridRow][gridCol] = {
                 status: "UNUSED",
                 weight: "00000",
@@ -419,7 +376,6 @@ export default function LuPage() {
             return updatedGrid;
           });
         } else if (move.from === "BUFFER") {
-          // Move from BUFFER to grid cell
           const [row, col] = move.to;
           const name = move.container;
           setGrid((prevGrid) => {
@@ -431,12 +387,10 @@ export default function LuPage() {
             );
             if (bufferIndex !== -1) {
               const container = buffer[bufferIndex];
-              // Add to grid
               updatedGrid[gridRow][gridCol] = {
                 status: container.status,
                 weight: container.weight,
               };
-              // Remove from buffer
               setBuffer((prevBuffer) =>
                 prevBuffer.filter((_, index) => index !== bufferIndex)
               );
@@ -503,7 +457,6 @@ export default function LuPage() {
     console.log("Move executed:", message);
   };
 
-  // **New useEffect:** Monitor when all moves have been processed
   useEffect(() => {
     if (currentMoveMessage === "All moves have been processed.") {
       // Empty the load queue
@@ -518,9 +471,7 @@ export default function LuPage() {
     }
   }, [currentMoveMessage]);
 
-  // **New Function:** Handle Confirm Button Click
   const handleConfirm = async () => {
-    // Prepare the data to send (only grid, as backend handles filename)
     const payload = grid;
 
     try {
@@ -543,7 +494,6 @@ export default function LuPage() {
         "Successfully saved outbound manifest. Please email the manifest to the customer."
       );
 
-      // Navigate back to the main page
       router.push("/main");
     } catch (error) {
       console.error("Error finalizing Load/Unload manifest:", error);
@@ -551,7 +501,6 @@ export default function LuPage() {
     }
   };
 
-  // Render loading state
   if (loading) {
     return (
       <div
@@ -567,7 +516,6 @@ export default function LuPage() {
     );
   }
 
-  // Render error state
   if (error) {
     return (
       <div
@@ -599,7 +547,7 @@ export default function LuPage() {
           color="success"
           onClick={() => handleModeSwitch("loading")}
           sx={{ fontWeight: "bold" }}
-          disabled={responseData !== null} // Disable if moves are being processed
+          disabled={responseData !== null} 
         >
           Loading
         </Button>
@@ -608,7 +556,7 @@ export default function LuPage() {
           color="error"
           onClick={() => handleModeSwitch("unloading")}
           sx={{ fontWeight: "bold" }}
-          disabled={responseData !== null} // Disable if moves are being processed
+          disabled={responseData !== null}
         >
           Unloading
         </Button>
@@ -631,7 +579,6 @@ export default function LuPage() {
           : "None"}
       </Typography>
 
-      {/* **Load Containers Form**: Visible only in "loading" mode */}
       {mode === "loading" && (
         <Box
           sx={{
@@ -661,7 +608,7 @@ export default function LuPage() {
                 }))
               }
               variant="outlined"
-              size="small" // Smaller input fields
+              size="small" 
             />
             <TextField
               label="Weight"
@@ -674,13 +621,13 @@ export default function LuPage() {
                 }))
               }
               variant="outlined"
-              size="small" // Smaller input fields
+              size="small" 
             />
             <Button
               variant="contained"
               color="primary"
               onClick={handleAddToLoadQueue}
-              sx={{ height: "40px" }} // Reduced height
+              sx={{ height: "40px" }} 
             >
               Add
             </Button>
@@ -688,7 +635,6 @@ export default function LuPage() {
         </Box>
       )}
 
-      {/* **Load Queue Display**: Always visible if loadQueue has items */}
       {loadQueue.length > 0 && (
         <Box sx={{ width: "80%", mt: 4, marginX: "auto" }}>
           <Typography variant="h6" gutterBottom>
@@ -696,7 +642,6 @@ export default function LuPage() {
           </Typography>
           <Grid container spacing={1}>
             {" "}
-            {/* Reduced spacing */}
             {loadQueue.map((container, index) => (
               <Grid
                 item
@@ -709,10 +654,10 @@ export default function LuPage() {
                 <Card
                   variant="outlined"
                   sx={{
-                    minWidth: 150, // Set a minimum width
-                    maxWidth: 200, // Set a maximum width
-                    padding: 0.5, // Reduce padding
-                    height: "120px", // Consistent height
+                    minWidth: 150, 
+                    maxWidth: 200, 
+                    padding: 0.5, 
+                    height: "120px", 
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
@@ -720,9 +665,8 @@ export default function LuPage() {
                 >
                   <CardContent sx={{ padding: "8px" }}>
                     {" "}
-                    {/* Reduced padding */}
                     <Typography
-                      variant="subtitle1" // Smaller font size
+                      variant="subtitle1" 
                       component="div"
                       sx={{
                         fontWeight: "bold",
@@ -734,7 +678,7 @@ export default function LuPage() {
                       {container.name}
                     </Typography>
                     <Typography
-                      variant="body2" // Smaller font size
+                      variant="body2" 
                       color="text.secondary"
                       sx={{
                         overflow: "hidden",
@@ -747,13 +691,12 @@ export default function LuPage() {
                   </CardContent>
                   <CardActions sx={{ padding: "4px" }}>
                     {" "}
-                    {/* Reduced padding */}
                     <IconButton
                       aria-label="delete"
-                      size="small" // Smaller icon button
+                      size="small" 
                       onClick={() => handleRemoveFromLoadQueue(index)}
                     >
-                      <DeleteIcon fontSize="small" /> {/* Smaller icon */}
+                      <DeleteIcon fontSize="small" /> 
                     </IconButton>
                   </CardActions>
                 </Card>
@@ -763,7 +706,6 @@ export default function LuPage() {
         </Box>
       )}
 
-      {/* Visualization Controls */}
       {responseData && (
         <Box
           sx={{
@@ -786,7 +728,6 @@ export default function LuPage() {
         </Box>
       )}
 
-      {/* **Confirm Button**: Rendered after all moves are processed */}
       {allMovesProcessed && (
         <Box
           sx={{
@@ -807,7 +748,6 @@ export default function LuPage() {
         </Box>
       )}
 
-      {/* Visualization Grid and BUFFER */}
       <Box
         sx={{
           marginTop: 4,
@@ -817,7 +757,6 @@ export default function LuPage() {
           flexWrap: "wrap",
         }}
       >
-        {/* **New Addition: Operation Timestamp Card** */}
         {timeStamp && (
           <Card
             sx={{
@@ -843,7 +782,6 @@ export default function LuPage() {
           </Card>
         )}
 
-        {/* Main Grid */}
         <Box
           sx={{
             display: "grid",
@@ -891,7 +829,6 @@ export default function LuPage() {
           ))}
         </Box>
 
-        {/* BUFFER Display */}
         <Box
           sx={{
             display: "flex",
@@ -909,7 +846,7 @@ export default function LuPage() {
           ) : (
             buffer.map((container, index) => (
               <Box
-                key={`${container.name}-${container.original_position}-${index}`} // Unique key
+                key={`${container.name}-${container.original_position}-${index}`} 
                 sx={{
                   width: 80,
                   height: 60,
@@ -921,7 +858,6 @@ export default function LuPage() {
                   marginTop: 1,
                   border: "1px solid #999",
                   overflow: "hidden",
-                  // Removed textOverflow and whiteSpace from Box as Typography handles it
                   fontSize: "0.8rem",
                 }}
               >
@@ -933,8 +869,8 @@ export default function LuPage() {
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
-                      width: "100%", // Ensure the Typography takes full width of the Box
-                      textAlign: "center", // Center the text horizontally
+                      width: "100%", 
+                      textAlign: "center", 
                     }}
                   >
                     {container.status}
@@ -946,7 +882,6 @@ export default function LuPage() {
         </Box>
       </Box>
 
-      {/* Move Description */}
       {currentMoveMessage && (
         <Typography variant="subtitle1" sx={{ textAlign: "center", mt: 2 }}>
           {currentMoveMessage}
