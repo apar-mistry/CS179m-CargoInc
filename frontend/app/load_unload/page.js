@@ -16,7 +16,7 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete"; // Ensure this is imported
 import MenuBar from "../components/MenuBar";
 import CommentButton from "../components/comment";
-import { useRouter } from 'next/navigation'; 
+import { useRouter } from "next/navigation";
 
 export default function LuPage() {
   const router = useRouter();
@@ -49,6 +49,7 @@ export default function LuPage() {
   // Loading and error states
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [timeStamp, setTimeStamp] = useState("");
 
   // Mode states
   const [mode, setMode] = useState(null); // 'loading', 'unloading', or null
@@ -77,8 +78,6 @@ export default function LuPage() {
     setCurrentMoveIndex(0);
     setCurrentMoveMessage("");
   };
-
-  // React Router's navigation hook
 
   // Log changes to responseData for debugging
   useEffect(() => {
@@ -241,6 +240,7 @@ export default function LuPage() {
 
   // Send load/unload data to the API
   const sendDataToAPI = async () => {
+    const clickTime = new Date();
     const loadContainers = loadQueue.map((container) => ({
       containerName: container.name,
       weight: container.weight,
@@ -265,6 +265,18 @@ export default function LuPage() {
       }
 
       const result = await response.json();
+      const totalTime = result.total_time;
+      const endTimeDate = new Date(clickTime.getTime() + totalTime * 60000); // Add minutes
+
+      // Helper function to format time in military format
+      const formatTimeMilitary = (date) => {
+        const hours = date.getHours().toString().padStart(2, "0");
+        const minutes = date.getMinutes().toString().padStart(2, "0");
+        return `${hours}:${minutes}`;
+      };
+
+      const formattedEndTime = formatTimeMilitary(endTimeDate);
+      setTimeStamp(formattedEndTime);
       setResponseData(result); // Save the response directly for processing
       setCurrentMoveIndex(0); // Reset move index
       console.log("Server Response:", result);
@@ -452,7 +464,9 @@ export default function LuPage() {
           if (updatedGrid[gridRow][gridCol].status === "UNUSED") {
             updatedGrid[gridRow][gridCol] = {
               status: move.container,
-              weight: containerWeights[move.container] || "00000",
+              weight: containerWeights[move.weight] || "00000",
+              position: row,
+              col,
             };
             message = `Loaded ${move.container} to [${row},${col}].`;
           } else {
@@ -477,7 +491,7 @@ export default function LuPage() {
       const logResponse = await fetch("http://127.0.0.1:5000/api/log_action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: logMessage })
+        body: JSON.stringify({ message: logMessage }),
       });
 
       if (!logResponse.ok) {
@@ -525,7 +539,9 @@ export default function LuPage() {
 
       const result = await response.json();
       console.log("Finalize Response:", result);
-      alert("Successfully saved outbound manifest. Please email the manifest to the customer.");
+      alert(
+        "Successfully saved outbound manifest. Please email the manifest to the customer."
+      );
 
       // Navigate back to the main page
       router.push("/main");
@@ -678,7 +694,9 @@ export default function LuPage() {
           <Typography variant="h6" gutterBottom>
             Load Queue
           </Typography>
-          <Grid container spacing={1}> {/* Reduced spacing */}
+          <Grid container spacing={1}>
+            {" "}
+            {/* Reduced spacing */}
             {loadQueue.map((container, index) => (
               <Grid
                 item
@@ -700,7 +718,9 @@ export default function LuPage() {
                     justifyContent: "space-between",
                   }}
                 >
-                  <CardContent sx={{ padding: "8px" }}> {/* Reduced padding */}
+                  <CardContent sx={{ padding: "8px" }}>
+                    {" "}
+                    {/* Reduced padding */}
                     <Typography
                       variant="subtitle1" // Smaller font size
                       component="div"
@@ -725,7 +745,9 @@ export default function LuPage() {
                       Weight: {container.weight}
                     </Typography>
                   </CardContent>
-                  <CardActions sx={{ padding: "4px" }}> {/* Reduced padding */}
+                  <CardActions sx={{ padding: "4px" }}>
+                    {" "}
+                    {/* Reduced padding */}
                     <IconButton
                       aria-label="delete"
                       size="small" // Smaller icon button
@@ -795,6 +817,32 @@ export default function LuPage() {
           flexWrap: "wrap",
         }}
       >
+        {/* **New Addition: Operation Timestamp Card** */}
+        {timeStamp && (
+          <Card
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              border: "1px solid #ddd",
+              padding: 2,
+              borderRadius: 2,
+              height: "fit-content",
+              minWidth: 200,
+              maxWidth: 250,
+              boxShadow: 3,
+              backgroundColor: "#f5f5f5",
+            }}
+          >
+            <CardContent>
+              <Typography variant="h6" component="div">
+                Operation Complete At: {timeStamp}
+              </Typography>
+              
+            </CardContent>
+          </Card>
+        )}
+
         {/* Main Grid */}
         <Box
           sx={{
@@ -838,9 +886,7 @@ export default function LuPage() {
               }}
               onClick={() => handleGridClick(cell.position)}
             >
-              {cell.status !== "NAN" &&
-                cell.status !== "UNUSED" &&
-                cell.status}
+              {cell.status !== "NAN" && cell.status !== "UNUSED" && cell.status}
             </div>
           ))}
         </Box>
@@ -902,10 +948,7 @@ export default function LuPage() {
 
       {/* Move Description */}
       {currentMoveMessage && (
-        <Typography
-          variant="subtitle1"
-          sx={{ textAlign: "center", mt: 2 }}
-        >
+        <Typography variant="subtitle1" sx={{ textAlign: "center", mt: 2 }}>
           {currentMoveMessage}
         </Typography>
       )}

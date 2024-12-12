@@ -6,7 +6,7 @@ from heapq import heappop, heappush
 from itertools import combinations
 container_weights = [[], [], [], [], [], [], [], []]
 container_names = [[], [], [], [], [], [], [], []]
-
+timeSpent = 0
 
 def load_file(file):
     global container_weights, container_names
@@ -114,7 +114,6 @@ def can_balance(weights):
 
 
 from collections import defaultdict
-from collections import defaultdict
 
 def find_optimal_spot(weights, names, loading_point, container_weight=0):
     num_rows = len(weights)
@@ -207,7 +206,7 @@ def find_alternative_spot(weights, names, loading_point, current_position):
             distance = abs(row - loading_row) + abs(col - loading_col)
 
             # Calculate total cost
-            total_cost = 2 + (2 * distance)
+            total_cost = 2 +  distance
 
             # Check if this spot has a lower cost than moving to buffer
             if total_cost < cost_to_buffer and total_cost < min_cost:
@@ -220,6 +219,7 @@ def find_alternative_spot(weights, names, loading_point, current_position):
         return (None, None, None)
 
 def clear_above(row, col, weights, names, loading_point, buffer, moves):
+    global timeSpent
     for r in range(len(weights) - 1, row, -1):
         if weights[r][col] > 0 and names[r][col] != "NAN":
             container_weight = weights[r][col]
@@ -239,12 +239,13 @@ def clear_above(row, col, weights, names, loading_point, buffer, moves):
                 new_row, new_col, min_distance = alternative_spot
 
                 # Calculate total time: 2 minutes + 2 * distance
-                total_time = 2 + (2 * min_distance)
+                distance = abs(r - new_row) + abs(col - new_col)
+                total_time = 2 + distance
 
                 # Update grids
                 weights[new_row][new_col] = container_weight
                 names[new_row][new_col] = container_name
-
+                timeSpent += total_time
                 # Record the move within the grid
                 moves.append({
                     'container': container_name,
@@ -261,8 +262,8 @@ def clear_above(row, col, weights, names, loading_point, buffer, moves):
                 distance_to_buffer = abs(r - loading_row) + abs(col - loading_col)
 
                 # Calculate total time: 2 minutes + 2 * distance
-                total_time = 2 + (2 * distance_to_buffer)
-
+                total_time = 2 + distance_to_buffer
+        
                 # Move container to buffer
                 buffer[col].append({
                     'weight': container_weight,
@@ -271,6 +272,8 @@ def clear_above(row, col, weights, names, loading_point, buffer, moves):
                 })
 
                 # Record the move to buffer
+                # to
+                timeSpent += total_time
                 moves.append({
                     'container': container_name,
                     'from': [r + 1, col + 1],
@@ -279,6 +282,7 @@ def clear_above(row, col, weights, names, loading_point, buffer, moves):
                 })
 
 def user_unloading(weights, names, unload_data, loading_point=(8, 1)):
+    global timeSpent
     moves = []   # List to track all moves
     buffer = defaultdict(list)  # Buffer to hold containers temporarily, grouped by column
 
@@ -321,8 +325,8 @@ def user_unloading(weights, names, unload_data, loading_point=(8, 1)):
 
             # Calculate time for unloading the target container
             distance_to_loading = abs(target_row - (loading_point[0] - 1)) + abs(col - (loading_point[1] - 1))
-            total_time_unload = 2 + (2 * distance_to_loading)  # Adjusted to match loading time logic
-
+            total_time_unload = 2 + distance_to_loading  # Adjusted to match loading time logic
+            timeSpent += total_time_unload
             # Record the removal of the target container
             moves.append({
                 'container': container_name,
@@ -347,7 +351,7 @@ def user_unloading(weights, names, unload_data, loading_point=(8, 1)):
                     distance_shift = abs(r - (loading_point[0] - 1)) + abs(col - (loading_point[1] - 1))
 
                     # Calculate total time: 2 minutes + 2 * distance
-                    total_time_shift = 2 + (2 * distance_shift)
+                    total_time_shift = 2 +  distance_shift
 
                     # Shift container down by one
                     weights[r - 1][col] = container_weight
@@ -356,7 +360,7 @@ def user_unloading(weights, names, unload_data, loading_point=(8, 1)):
                     # Mark original spot as UNUSED
                     weights[r][col] = 0
                     names[r][col] = "UNUSED"
-
+                    timeSpent += total_time_shift
                     # Record the shift move
                     moves.append({
                         'container': container_name,
@@ -384,12 +388,12 @@ def user_unloading(weights, names, unload_data, loading_point=(8, 1)):
                 distance_to_ship = min_distance
 
                 # Calculate total time: 2 minutes + 2 * distance
-                total_time_restore = 2 + (2 * distance_to_ship)
+                total_time_restore = 2 + distance_to_ship
 
                 # Place container back to the optimal position
                 weights[row][col_spot] = container_weight
                 names[row][col_spot] = container_name
-
+                timeSpent += total_time_restore
                 # Record the move from buffer back to the ship
                 moves.append({
                     'container': container_name,
@@ -402,7 +406,7 @@ def user_unloading(weights, names, unload_data, loading_point=(8, 1)):
                 print(f"Error: No available supported space to restore container '{container_name}' from BUFFER.")
                 # Optionally, implement logic to handle this scenario (e.g., retry later, expand grid, etc.)
 
-    return weights, names, moves
+    return weights, names, moves, timeSpent
 def loading(weights, names, load_data, loading_point=(8, 1)):
     moves = []
     total_time = 0
@@ -461,7 +465,8 @@ def loading(weights, names, load_data, loading_point=(8, 1)):
             
             moves.append({
                 'container': container_name,
-                'position': (row + 1, col + 1),  # Convert back to one-based index
+                'position': (row + 1, col + 1),
+                'weight': weight,  # Convert back to one-based index
                 'time': total_time
             })
             placed = True

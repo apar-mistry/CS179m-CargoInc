@@ -137,6 +137,7 @@ def balance():
 @app.route('/api/load_unload', methods=['POST'])
 def getMoves():
     try:
+        ltime, utime = 0, 0
         global weights, names  # Access global variables
         if weights is None or names is None:
             return jsonify({"error": "Ship data not initialized. Upload a file first."}), 400
@@ -152,24 +153,25 @@ def getMoves():
 
         # Perform unloading
         if unload_data:
-            weights, names, unload_moves = user_unloading(weights, names, unload_data)
+            weights, names, unload_moves, utime = user_unloading(weights, names, unload_data)
         else:
             unload_moves = []
 
         # Perform loading
         if load_data:
-            weights, names, load_moves, time = loading(weights, names, load_data)
+            weights, names, load_moves, ltime = loading(weights, names, load_data)
         else:
             load_moves = []
-        
+        # Sum the time for load and unload moves
+        total_time = sum(move['time'] for move in load_moves) + sum(move['time'] for move in unload_moves)
         grid_data = convert_to_grid_data(weights, names)
-
+        # total_time = ltime + utime
         # Construct the response
         response = {
             "data": grid_data,
             "unloadMoves": unload_moves,
             "loadMoves": load_moves,
-            # "time": time
+            "total_time": total_time,
         }
 
         return jsonify(response), 200
