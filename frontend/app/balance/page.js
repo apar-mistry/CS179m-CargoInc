@@ -13,7 +13,6 @@ export default function BalancePage() {
   const [error, setError] = useState(null);
 
   const [moves, setMoves] = useState([]);
-  // currentMoveIndex tracks which move we are on
   const [currentMoveIndex, setCurrentMoveIndex] = useState(-1);
   const [cost, setCost] = useState(0);
   const [time, setTime] = useState(null);
@@ -163,7 +162,9 @@ export default function BalancePage() {
         if (!response.ok) {
           throw new Error("Failed to finalize balance on the server.");
         }
-
+        setLoading(true);
+        setMoves([]);
+        setCost(0);
         router.push("/main");
         sessionStorage.removeItem("operation")
       } catch (err) {
