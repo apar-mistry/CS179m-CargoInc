@@ -1,17 +1,7 @@
 import sys
 from balance import user_unloading, loading
 from parser import parseData
-
-def parse_to_matrices(structured_data):
-    weights = [[0] * 12 for _ in range(8)]  # 8 rows, 12 columns
-    names = [["UNUSED"] * 12 for _ in range(8)]
-
-    for entry in structured_data:
-        row, col = map(int, entry['position'].split(','))
-        weights[row - 1][col - 1] = int(entry['weight'])
-        names[row - 1][col - 1] = entry['status']
-
-    return weights, names
+from toMatrix import parse_to_matrices
 
 def print_ship_state(weights, names):
     """

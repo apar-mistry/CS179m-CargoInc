@@ -13,7 +13,6 @@ export default function BalancePage() {
   const [error, setError] = useState(null);
 
   const [moves, setMoves] = useState([]);
-  // currentMoveIndex tracks which move we are on
   const [currentMoveIndex, setCurrentMoveIndex] = useState(-1);
   const [cost, setCost] = useState(0);
   const [time, setTime] = useState(null);
@@ -36,8 +35,7 @@ export default function BalancePage() {
 
   const [openDialog, setOpenDialog] = useState(false);
 
-  // showHighlightOnly will be toggled after the first highlight
-  // Initially, when the user clicks "Begin Balance" (the first "Next"), we want to highlight only.
+
   const [showHighlightOnly, setShowHighlightOnly] = useState(true);
 
   useEffect(() => {
@@ -89,13 +87,11 @@ export default function BalancePage() {
       const updatedGrid = grid.map((r) => r.slice());
   
       if (showHighlightOnly) {
-        // Highlight only
         setHighlightCoord({ row: initialRow, col: initialCol });
         setDestinationCoord({ row: newRow, col: newCol });
         setShowHighlightOnly(false);
         setCurrentMoveIndex(nextMoveIndex);
       } else {
-        // Perform the move
         const initCell = updatedGrid[8 - initialRow][initialCol - 1];
         const newPos = `${newRow < 10 ? "0" : ""}${newRow},${newCol < 10 ? "0" : ""}${newCol}`;
         const movedContainer = {
@@ -113,8 +109,6 @@ export default function BalancePage() {
         setGrid(updatedGrid);
         setShowHighlightOnly(true);
   
-        // Log the movement
-        // Assuming `movedContainer.status` holds the container's commodity/status
         try {
           const logMessage = `${movedContainer.status} moved to (${newPos}) for balance`;
           const logResponse = await fetch("http://127.0.0.1:5000/api/log_action", {
@@ -130,15 +124,12 @@ export default function BalancePage() {
           console.error("Error logging movement:", err);
         }
   
-        // currentMoveIndex was incremented in the highlight phase already
       }
     }
   };
 
   useEffect(() => {
-    // If we finished all moves, clear highlights
     if (moves.length > 0 && currentMoveIndex >= moves.length - 1 && showHighlightOnly) {
-      // At this point we've done the highlight and move for all moves
       setHighlightCoord(null);
       setDestinationCoord(null);
     }
@@ -163,7 +154,9 @@ export default function BalancePage() {
         if (!response.ok) {
           throw new Error("Failed to finalize balance on the server.");
         }
-
+        setLoading(true);
+        setMoves([]);
+        setCost(0);
         router.push("/main");
         sessionStorage.removeItem("operation")
       } catch (err) {
