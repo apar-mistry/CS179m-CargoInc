@@ -9,6 +9,9 @@
   --background-light-gray: #ECECEC;
   --text-dark-gray: #2B2B2B;
 }
+nextjs-portal {
+  display: none;
+}
 
 
 
