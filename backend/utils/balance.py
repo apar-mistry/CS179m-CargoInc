@@ -624,6 +624,7 @@ def map_nested_grid(nested_data):
 
 
 def process(input_file):
+    global container_weights, container_names
     w, n = load_file(input_file)
     if can_balance(w):
         print("Balance")
@@ -632,6 +633,8 @@ def process(input_file):
         print('sift')
         new_w, new_n, moves = sift(w, n)
     cost = calculate_cost(w, moves)
+    container_weights = [[], [], [], [], [], [], [], []]
+    container_names = [[], [], [], [], [], [], [], []]
     return new_w, new_n, map_nested_grid(moves), cost
 
 # print(process('../ShipCase2.txt'))
