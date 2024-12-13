@@ -47,7 +47,7 @@ export default function LuPage() {
   const [mode, setMode] = useState(null); 
   const [highlightedCells, setHighlightedCells] = useState([]);
   const [selectedUnloadCells, setSelectedUnloadCells] = useState([]);
-
+  const [data, setData] = useState(null);
 
   const [containerWeights, setContainerWeights] = useState({});
 
@@ -81,7 +81,7 @@ export default function LuPage() {
         }
         const result = await response.json();
         const fetchedData = result.data;
-
+        
         const updatedGrid = grid.map((row) => [...row]);
         const weightsMapping = {};
 
@@ -236,7 +236,7 @@ export default function LuPage() {
       const result = await response.json();
       const totalTime = result.total_time;
       const endTimeDate = new Date(clickTime.getTime() + totalTime * 60000); 
-
+      setData(result.data);
       const formatTimeMilitary = (date) => {
         const hours = date.getHours().toString().padStart(2, "0");
         const minutes = date.getMinutes().toString().padStart(2, "0");
@@ -472,7 +472,7 @@ export default function LuPage() {
   }, [currentMoveMessage]);
 
   const handleConfirm = async () => {
-    const payload = grid;
+    const payload = data;
 
     try {
       const response = await fetch(

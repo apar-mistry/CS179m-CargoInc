@@ -128,14 +128,10 @@ def find_optimal_spot(weights, names, loading_point, container_weight=0):
 
     for row in range(num_rows):
         for col in range(num_cols):
-            # Check if the current spot is UNUSED
             if names[row][col] == "UNUSED":
-                # Determine if the spot has a valid support
                 if row == 0:
-                    # Ground level; always valid
                     valid_support = True
                 else:
-                    # Check the spot below
                     below_weight = weights[row - 1][col]
                     below_name = names[row - 1][col]
                     if below_weight > 0 or below_name == "NAN":
@@ -144,15 +140,12 @@ def find_optimal_spot(weights, names, loading_point, container_weight=0):
                         valid_support = False
 
                 if valid_support:
-                    # Calculate Manhattan distance from loading point
                     distance = abs(row - loading_row) + abs(col - loading_col)
 
-                    # Update the optimal spot if a closer spot is found
                     if distance < min_distance:
                         min_distance = distance
                         optimal_spot = (row, col)
                     elif distance == min_distance:
-                        # Tie-breaker: prioritize lower row, then lower column
                         if optimal_spot is None or (row, col) < optimal_spot:
                             optimal_spot = (row, col)
 
@@ -166,12 +159,11 @@ def find_alternative_spot(weights, names, loading_point, current_position):
     num_cols = len(weights[0]) if num_rows > 0 else 0
 
     loading_row, loading_col = loading_point
-    loading_row -= 1  # Zero-based indexing
-    loading_col -= 1  # Zero-based indexing
+    loading_row -= 1
+    loading_col -= 1  
 
     current_row, current_col = current_position
 
-    # Calculate the cost to move to buffer
     distance_to_buffer = abs(current_row - loading_row) + abs(current_col - loading_col)
     cost_to_buffer = 2 + (2 * distance_to_buffer)
 
@@ -180,7 +172,6 @@ def find_alternative_spot(weights, names, loading_point, current_position):
 
     for row in range(num_rows):
         for col in range(num_cols):
-            # Skip the current position
             if row == current_row and col == current_col:
                 continue
 
@@ -188,7 +179,6 @@ def find_alternative_spot(weights, names, loading_point, current_position):
             if names[row][col] != "UNUSED":
                 continue
 
-            # Determine if the spot has valid support
             if row == 0:
                 valid_support = True
             else:
@@ -202,13 +192,10 @@ def find_alternative_spot(weights, names, loading_point, current_position):
             if not valid_support:
                 continue
 
-            # Calculate Manhattan distance
             distance = abs(row - loading_row) + abs(col - loading_col)
 
-            # Calculate total cost
             total_cost = 2 +  distance
 
-            # Check if this spot has a lower cost than moving to buffer
             if total_cost < cost_to_buffer and total_cost < min_cost:
                 min_cost = total_cost
                 optimal_spot = (row, col)
@@ -227,26 +214,22 @@ def clear_above(row, col, weights, names, loading_point, buffer, moves):
 
             current_position = (r, col)
 
-            # **Mark the current position as UNUSED before searching**
             weights[r][col] = 0
             names[r][col] = "UNUSED"
 
-            # Attempt to find an alternative spot within the grid
             alternative_spot = find_alternative_spot(weights, names, loading_point, current_position)
 
             if alternative_spot[0] is not None:
-                # Move container to the alternative spot
                 new_row, new_col, min_distance = alternative_spot
 
-                # Calculate total time: 2 minutes + 2 * distance
                 distance = abs(r - new_row) + abs(col - new_col)
                 total_time = 2 + distance
 
-                # Update grids
+
                 weights[new_row][new_col] = container_weight
                 names[new_row][new_col] = container_name
                 timeSpent += total_time
-                # Record the move within the grid
+
                 moves.append({
                     'container': container_name,
                     'from': [r + 1, col + 1],
@@ -254,25 +237,19 @@ def clear_above(row, col, weights, names, loading_point, buffer, moves):
                     'time': total_time
                 })
             else:
-                # No alternative spot found; move container to buffer
-                # Calculate Manhattan distance from loading point
+
                 loading_row, loading_col = loading_point
                 loading_row -= 1  # Zero-based indexing
                 loading_col -= 1  # Zero-based indexing
                 distance_to_buffer = abs(r - loading_row) + abs(col - loading_col)
 
-                # Calculate total time: 2 minutes + 2 * distance
                 total_time = 2 + distance_to_buffer
         
-                # Move container to buffer
                 buffer[col].append({
                     'weight': container_weight,
                     'name': container_name,
                     'original_position': (r, col)
                 })
-
-                # Record the move to buffer
-                # to
                 timeSpent += total_time
                 moves.append({
                     'container': container_name,
@@ -283,51 +260,41 @@ def clear_above(row, col, weights, names, loading_point, buffer, moves):
 
 def user_unloading(weights, names, unload_data, loading_point=(8, 1)):
     global timeSpent
-    moves = []   # List to track all moves
-    buffer = defaultdict(list)  # Buffer to hold containers temporarily, grouped by column
-
+    moves = []  
+    buffer = defaultdict(list)  
     ROWS = len(weights)
     COLS = len(weights[0]) if ROWS > 0 else 0
 
-    # Parse targets and group them by column
-    targets_by_col = defaultdict(list)  # column: list of target rows
+    targets_by_col = defaultdict(list) 
     for data in unload_data:
         if 'position' in data:
-            # Unload Completely
             pos = data['position']
             row, col = map(int, pos.split(','))
-            row -= 1  # Convert to zero-based indexing
+            row -= 1  
             col -= 1
             targets_by_col[col].append(row)
         elif 'from' in data and data['to'] == "BUFFER":
             # Unload to BUFFER
             pos = data['from']
             row, col = pos
-            row -= 1  # Convert to zero-based indexing
+            row -= 1 
             col -= 1
             targets_by_col[col].append(row)
-        # Else: Ignore other cases for unloading
 
-    # Sort target rows in each column in descending order (top to bottom)
     for col in targets_by_col:
         targets_by_col[col].sort(reverse=True)
 
-    # Remove targets and buffer obstructing containers
     for col, target_rows in targets_by_col.items():
         for target_row in target_rows:
-            # Clear containers above the target
             clear_above(target_row, col, weights, names, loading_point, buffer, moves)
 
-            # Remove the target container
             container_name = names[target_row][col]
             weights[target_row][col] = 0
             names[target_row][col] = "UNUSED"
 
-            # Calculate time for unloading the target container
             distance_to_loading = abs(target_row - (loading_point[0] - 1)) + abs(col - (loading_point[1] - 1))
             total_time_unload = 2 + distance_to_loading  # Adjusted to match loading time logic
             timeSpent += total_time_unload
-            # Record the removal of the target container
             moves.append({
                 'container': container_name,
                 'from': [target_row + 1, col + 1],
@@ -335,33 +302,25 @@ def user_unloading(weights, names, unload_data, loading_point=(8, 1)):
                 'time': total_time_unload
             })
 
-    # After removing targets, shift containers down in each affected column
     for col, target_rows in targets_by_col.items():
-        # Sort target rows in ascending order for shifting (bottom to top)
         sorted_targets = sorted(target_rows)
 
         for target_row in sorted_targets:
-            # For each target_row, shift containers above down by one
             for r in range(target_row + 1, ROWS):
                 if weights[r][col] > 0 and names[r][col] != "NAN":
                     container_weight = weights[r][col]
                     container_name = names[r][col]
 
-                    # Calculate Manhattan distance from loading point
                     distance_shift = abs(r - (loading_point[0] - 1)) + abs(col - (loading_point[1] - 1))
 
-                    # Calculate total time: 2 minutes + 2 * distance
                     total_time_shift = 2 +  distance_shift
 
-                    # Shift container down by one
                     weights[r - 1][col] = container_weight
                     names[r - 1][col] = container_name
 
-                    # Mark original spot as UNUSED
                     weights[r][col] = 0
                     names[r][col] = "UNUSED"
                     timeSpent += total_time_shift
-                    # Record the shift move
                     moves.append({
                         'container': container_name,
                         'from': [r + 1, col + 1],
@@ -369,32 +328,25 @@ def user_unloading(weights, names, unload_data, loading_point=(8, 1)):
                         'time': total_time_shift
                     })
 
-    # Restore containers from buffer back onto the ship using cost-based placement
     for col in buffer:
-        # Sort buffered containers by original row in ascending order (bottom to top)
         buffer[col].sort(key=lambda x: x['original_position'][0])
 
         for item in buffer[col]:
             container_weight = item['weight']
             container_name = item['name']
 
-            # Find the optimal spot for restoration
             optimal_spot, min_distance = find_optimal_spot(weights, names, loading_point, container_weight)
 
             if optimal_spot:
                 row, col_spot = optimal_spot
 
-                # Calculate Manhattan distance from loading point
                 distance_to_ship = min_distance
 
-                # Calculate total time: 2 minutes + 2 * distance
                 total_time_restore = 2 + distance_to_ship
 
-                # Place container back to the optimal position
                 weights[row][col_spot] = container_weight
                 names[row][col_spot] = container_name
                 timeSpent += total_time_restore
-                # Record the move from buffer back to the ship
                 moves.append({
                     'container': container_name,
                     'from': "BUFFER",
@@ -402,9 +354,7 @@ def user_unloading(weights, names, unload_data, loading_point=(8, 1)):
                     'time': total_time_restore
                 })
             else:
-                # If no optimal spot found, log an error and optionally keep the container in BUFFER
                 print(f"Error: No available supported space to restore container '{container_name}' from BUFFER.")
-                # Optionally, implement logic to handle this scenario (e.g., retry later, expand grid, etc.)
 
     return weights, names, moves, timeSpent
 def loading(weights, names, load_data, loading_point=(8, 1)):
@@ -618,7 +568,6 @@ def map_nested_grid(nested_data):
             for index, value in enumerate(row)
         ]
 
-    # Apply the transformation to each row in the nested grid
     mapped_data = [map_values(row) for row in nested_data]
     return mapped_data
 
