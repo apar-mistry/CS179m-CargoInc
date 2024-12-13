@@ -211,22 +211,42 @@ def finalize_balance():
 def finalize_load_unload():
     try:
         data = request.get_json()
-        global filename
+        uploads_dir = os.path.join(app.config['UPLOAD_FOLDER'])
+        file_list = glob.glob(os.path.join(uploads_dir, '*'))
+
+        if not file_list:
+            raise ValueError("No files found in the uploads directory!")
+
+        file_path = file_list[-1]  # Use the last modified file
+        filename = os.path.basename(file_path)  # Extract just the filename
         
         # Validate received data
-        if not isinstance(data, list):
-            return jsonify({"message": "Invalid data format. Expected a list."}), 400
+       # Calculate the maximum row index
+        max_row_index = max(int(cell['position'].split(',')[0]) for cell in data)
 
-        grid = data
+        # Flip row indices in the JSON
+        for cell in data:
+            original_row, col = map(int, cell['position'].split(','))
+            flipped_row = max_row_index - original_row + 1  # Flip the row index
+            cell['position'] = f"{flipped_row:02},{col:02}"  # Update the JSON directly
 
-        # Format each cell's data
-        lines = [
-            f"[{cell.get('position', '00,00')}], {{{cell.get('weight', '00000')}}}, {cell.get('status', 'NAN')}"
-            for row in reversed(grid)
-            for cell in row
-        ]
+        # Sort the flipped data by position for proper ordering
+        sorted_data = sorted(
+            data,
+            key=lambda x: (int(x['position'].split(',')[0]), int(x['position'].split(',')[1]))
+        )
 
-        formatted_text = "\n".join(lines)
+        # Format each cell's data for output
+        formatted_lines = []
+        for cell in sorted_data:
+            row, col = cell['position'].split(',')
+            formatted_lines.append(
+                f"[{row},{col}], {{{cell.get('weight', '00000')}}}, {cell.get('status', 'NAN')}"
+            )
+
+        # Join the formatted lines into a single text
+        formatted_text = "\n".join(formatted_lines)
+
 
         # Define paths
         desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
@@ -247,10 +267,9 @@ def finalize_load_unload():
         # Write formatted text to the file
         with open(output_file_path, "w") as f:
             f.write(formatted_text)
-
+        
         # Log the completion
         log_complete(f"Finished Load/Unload operations. Manifest {base_filename}OUTBOUND.txt was written to desktop, and a reminder pop-up to operator to send file was displayed.")
-
         # Return success response
         return jsonify({"message": "Load/Unload manifest finalized and saved.", "file": output_file_path}), 200
 
@@ -258,6 +277,7 @@ def finalize_load_unload():
         # Handle unexpected errors
         log_complete(f"Error during finalize_load_unload: {str(e)}")
         return jsonify({"message": "An error occurred while finalizing the Load/Unload manifest.", "error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(port=5000) 
